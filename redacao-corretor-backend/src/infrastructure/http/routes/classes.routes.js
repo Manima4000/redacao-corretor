@@ -297,4 +297,76 @@ router.put(
  */
 router.delete('/:id', authMiddleware, requireTeacher, classController.delete);
 
+/**
+ * @swagger
+ * /api/classes/{id}/students:
+ *   post:
+ *     summary: Adicionar aluno à turma
+ *     description: Vincula um aluno existente a uma turma (apenas o professor dono da turma)
+ *     tags: [Classes]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da turma
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - studentId
+ *             properties:
+ *               studentId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID do aluno a ser adicionado
+ *     responses:
+ *       200:
+ *         description: Aluno adicionado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Aluno adicionado à turma com sucesso
+ *                 data:
+ *                   $ref: '#/components/schemas/Student'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Apenas o professor dono da turma pode adicionar alunos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Turma ou aluno não encontrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post(
+  '/:id/students',
+  authMiddleware,
+  requireTeacher,
+  classController.addStudent
+);
+
 export default router;

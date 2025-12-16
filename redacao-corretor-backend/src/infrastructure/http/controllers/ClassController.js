@@ -3,10 +3,12 @@ import { GetClassesUseCase } from '../../../application/use-cases/classes/GetCla
 import { GetClassByIdUseCase } from '../../../application/use-cases/classes/GetClassByIdUseCase.js';
 import { UpdateClassUseCase } from '../../../application/use-cases/classes/UpdateClassUseCase.js';
 import { DeleteClassUseCase } from '../../../application/use-cases/classes/DeleteClassUseCase.js';
+import { AddStudentToClassUseCase } from '../../../application/use-cases/classes/AddStudentToClassUseCase.js';
 import { CreateClassDTO } from '../../../application/dtos/CreateClassDTO.js';
 import { UpdateClassDTO } from '../../../application/dtos/UpdateClassDTO.js';
 import { ClassRepository } from '../../database/repositories/ClassRepository.js';
 import { TeacherRepository } from '../../database/repositories/TeacherRepository.js';
+import { StudentRepository } from '../../database/repositories/StudentRepository.js';
 
 /**
  * Controller para gerenciamento de turmas
@@ -17,6 +19,7 @@ export class ClassController {
     // Dependency Injection
     this.classRepository = new ClassRepository();
     this.teacherRepository = new TeacherRepository();
+    this.studentRepository = new StudentRepository();
 
     this.createClassUseCase = new CreateClassUseCase(
       this.classRepository,
@@ -31,12 +34,18 @@ export class ClassController {
 
     this.deleteClassUseCase = new DeleteClassUseCase(this.classRepository);
 
+    this.addStudentToClassUseCase = new AddStudentToClassUseCase(
+      this.classRepository,
+      this.studentRepository
+    );
+
     // Bind dos métodos (para manter contexto quando usado como callback)
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
     this.getById = this.getById.bind(this);
     this.update = this.update.bind(this);
     this.delete = this.delete.bind(this);
+    this.addStudent = this.addStudent.bind(this);
   }
 
   /**
@@ -153,6 +162,38 @@ export class ClassController {
       res.status(200).json({
         success: true,
         message: 'Turma deletada com sucesso',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/classes/:id/students
+   * Adiciona um aluno à turma (apenas o professor dono da turma)
+   */
+  async addStudent(req, res, next) {
+    try {
+      const { id } = req.params; // classId
+      const { studentId } = req.body;
+
+      if (!studentId) {
+        return res.status(400).json({
+          success: false,
+          error: 'ID do aluno é obrigatório',
+        });
+      }
+
+      const result = await this.addStudentToClassUseCase.execute(
+        id,
+        studentId,
+        req.user.id
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Aluno adicionado à turma com sucesso',
+        data: result,
       });
     } catch (error) {
       next(error);
