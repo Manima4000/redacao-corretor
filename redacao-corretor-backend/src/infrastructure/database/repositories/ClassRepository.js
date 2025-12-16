@@ -45,9 +45,11 @@ export class ClassRepository extends IClassRepository {
    */
   async findById(id) {
     const sql = `
-      SELECT id, name, description, teacher_id, created_at, updated_at
-      FROM classes
-      WHERE id = $1
+      SELECT c.id, c.name, c.description, c.teacher_id, c.created_at, c.updated_at,
+             (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM task_classes tc WHERE tc.class_id = c.id) AS task_count
+      FROM classes c
+      WHERE c.id = $1
     `;
 
     const result = await query(sql, [id]);
@@ -65,9 +67,11 @@ export class ClassRepository extends IClassRepository {
    */
   async findAll() {
     const sql = `
-      SELECT id, name, description, teacher_id, created_at, updated_at
-      FROM classes
-      ORDER BY name ASC
+      SELECT c.id, c.name, c.description, c.teacher_id, c.created_at, c.updated_at,
+             (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM task_classes tc WHERE tc.class_id = c.id) AS task_count
+      FROM classes c
+      ORDER BY c.name ASC
     `;
 
     const result = await query(sql);
@@ -81,10 +85,12 @@ export class ClassRepository extends IClassRepository {
    */
   async findByTeacherId(teacherId) {
     const sql = `
-      SELECT id, name, description, teacher_id, created_at, updated_at
-      FROM classes
-      WHERE teacher_id = $1
-      ORDER BY name ASC
+      SELECT c.id, c.name, c.description, c.teacher_id, c.created_at, c.updated_at,
+             (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM task_classes tc WHERE tc.class_id = c.id) AS task_count
+      FROM classes c
+      WHERE c.teacher_id = $1
+      ORDER BY c.name ASC
     `;
 
     const result = await query(sql, [teacherId]);
@@ -168,6 +174,8 @@ export class ClassRepository extends IClassRepository {
       teacherId: row.teacher_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      studentCount: row.student_count,
+      taskCount: row.task_count,
     });
   }
 }
