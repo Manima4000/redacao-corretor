@@ -150,7 +150,68 @@ async function seedDatabase() {
       }
     }
 
-    // 4. Resumo
+    // 4. Criar tarefas de exemplo
+    logger.info('📝 Criando tarefas...');
+
+    const tasks = [
+      {
+        title: 'Redação sobre Meio Ambiente',
+        description:
+          'Escreva uma redação dissertativa-argumentativa sobre os impactos da poluição nos oceanos e possíveis soluções.',
+        deadline: new Date('2026-01-15T23:59:59.000Z'),
+        classIndexes: [0, 1], // Turmas AFA e EFOMM
+      },
+      {
+        title: 'Redação sobre Tecnologia',
+        description:
+          'Discorra sobre os impactos da inteligência artificial na sociedade moderna, considerando aspectos éticos e sociais.',
+        deadline: new Date('2026-01-20T23:59:59.000Z'),
+        classIndexes: [2], // Turma ENEM
+      },
+      {
+        title: 'Redação sobre Educação',
+        description:
+          'Analise os desafios da educação pública no Brasil e proponha medidas para melhorar a qualidade do ensino.',
+        deadline: new Date('2026-02-01T23:59:59.000Z'),
+        classIndexes: [0, 2, 3], // Turmas AFA, ENEM, ESA
+      },
+    ];
+
+    for (const taskData of tasks) {
+      // Criar a tarefa
+      const taskResult = await query(
+        `
+        INSERT INTO tasks (title, description, teacher_id, deadline)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id, title
+        `,
+        [taskData.title, taskData.description, teacherId, taskData.deadline]
+      );
+
+      if (taskResult.rows.length > 0) {
+        const taskId = taskResult.rows[0].id;
+
+        // Associar turmas à tarefa
+        for (const classIndex of taskData.classIndexes) {
+          const classId = classIds[classIndex]?.id;
+          if (classId) {
+            await query(
+              `
+              INSERT INTO task_classes (task_id, class_id)
+              VALUES ($1, $2)
+              ON CONFLICT DO NOTHING
+              `,
+              [taskId, classId]
+            );
+          }
+        }
+
+        const classNames = taskData.classIndexes.map((idx) => classIds[idx]?.name).join(', ');
+        logger.info(`✅ Tarefa criada: ${taskResult.rows[0].title} (${classNames})`);
+      }
+    }
+
+    // 5. Resumo
     logger.info('\n📊 Resumo do Seed:');
     logger.info('==============================================');
     logger.info('👩‍🏫 Professora:');
@@ -160,6 +221,11 @@ async function seedDatabase() {
     classIds.forEach((c) => logger.info(`   - ${c.name}`));
     logger.info('\n👨‍🎓 Alunos criados (todos com senha: senha123):');
     students.forEach((s) => logger.info(`   - ${s.email} (${classIds[s.classIndex]?.name})`));
+    logger.info('\n📝 Tarefas criadas:');
+    tasks.forEach((t) => {
+      const classNames = t.classIndexes.map((idx) => classIds[idx]?.name).join(', ');
+      logger.info(`   - ${t.title} (${classNames})`);
+    });
     logger.info('==============================================');
     logger.info('\n✅ Seed concluído com sucesso!');
 

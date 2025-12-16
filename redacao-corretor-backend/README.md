@@ -73,12 +73,12 @@ Documentação completa em: **http://localhost:3000/api-docs**
 - `PUT /api/classes/:id` - Atualizar turma (apenas o dono)
 - `DELETE /api/classes/:id` - Deletar turma (apenas o dono)
 
-### Tarefas
-- `GET /api/tasks` - Listar tarefas
-- `POST /api/tasks` - Criar tarefa (apenas professora)
-- `GET /api/tasks/:id` - Detalhes da tarefa
-- `PUT /api/tasks/:id` - Atualizar tarefa
-- `DELETE /api/tasks/:id` - Deletar tarefa
+### Tarefas ✅ IMPLEMENTADO
+- `GET /api/tasks` - Listar tarefas (professores veem suas tarefas, alunos veem tarefas da sua turma)
+- `GET /api/tasks/:id` - Buscar tarefa por ID
+- `POST /api/tasks` - Criar tarefa para uma ou mais turmas (apenas professores)
+- `PUT /api/tasks/:id` - Atualizar tarefa (apenas o dono)
+- `DELETE /api/tasks/:id` - Deletar tarefa (apenas o dono)
 
 ### Redações
 - `POST /api/essays` - Upload de redação
@@ -121,6 +121,11 @@ npm run seed
 - `ana.costa@exemplo.com` - Turma EFOMM
 - `lucas.lima@exemplo.com` - Turma ENEM
 - `juliana.pereira@exemplo.com` - Turma ESA
+
+📝 **Tarefas:**
+- Redação sobre Meio Ambiente (Turma AFA, Turma EFOMM)
+- Redação sobre Tecnologia (Turma ENEM)
+- Redação sobre Educação (Turma AFA, Turma ENEM, Turma ESA)
 
 ## Docker
 

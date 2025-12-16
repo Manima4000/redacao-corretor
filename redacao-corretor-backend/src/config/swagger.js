@@ -162,6 +162,55 @@ const options = {
             },
           },
         },
+        Task: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              example: 'abc12345-e89b-12d3-a456-426614174000',
+            },
+            title: {
+              type: 'string',
+              example: 'Redação sobre Meio Ambiente',
+            },
+            description: {
+              type: 'string',
+              example: 'Escreva uma redação dissertativa-argumentativa sobre os impactos da poluição nos oceanos.',
+            },
+            teacherId: {
+              type: 'string',
+              format: 'uuid',
+              example: '123e4567-e89b-12d3-a456-426614174000',
+            },
+            deadline: {
+              type: 'string',
+              format: 'date-time',
+              example: '2025-12-31T23:59:59.000Z',
+              nullable: true,
+            },
+            classIds: {
+              type: 'array',
+              items: {
+                type: 'string',
+                format: 'uuid',
+              },
+              example: ['789e0123-e89b-12d3-a456-426614174000'],
+            },
+            isOverdue: {
+              type: 'boolean',
+              example: false,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+            },
+          },
+        },
         AuthResponse: {
           type: 'object',
           properties: {
