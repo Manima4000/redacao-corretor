@@ -3,10 +3,11 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/shared/constants/routes';
 import { PrivateRoute } from './PrivateRoute';
 
-// Pages (serão criadas)
+// Pages
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { ClassesPage } from '@/features/classes/pages/ClassesPage';
+import { ClassTasksPage } from '@/features/classes/pages/ClassTasksPage';
 
 // Layout
 import { MainLayout } from '@/shared/components/layout/MainLayout';
@@ -47,6 +48,17 @@ export const AppRouter = () => {
             <PrivateRoute>
               <MainLayout>
                 <ClassesPage />
+              </MainLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path={ROUTES.CLASS_DETAIL}
+          element={
+            <PrivateRoute>
+              <MainLayout>
+                <ClassTasksPage />
               </MainLayout>
             </PrivateRoute>
           }

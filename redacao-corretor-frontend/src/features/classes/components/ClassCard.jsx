@@ -1,8 +1,19 @@
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/shared/components/ui/Card';
+import { ROUTES, buildRoute } from '@/shared/constants/routes';
 
 export const ClassCard = ({ classData }) => {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(buildRoute(ROUTES.CLASS_DETAIL, { id: classData.id }));
+  };
+
   return (
-    <Card className="p-6 hover:border-blue-500 border-2 border-transparent">
+    <Card 
+      className="p-6 hover:border-blue-500 border-2 border-transparent"
+      onClick={handleClick}
+    >
       <div className="space-y-3">
         <h3 className="text-xl font-bold text-gray-900">{classData.name}</h3>
 

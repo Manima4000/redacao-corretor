@@ -26,12 +26,13 @@ Frontend do sistema de correção de redações, permitindo que:
 - **Professores:** Gerenciem turmas, criem tarefas, recebam redações e façam anotações com caneta de tablet
 - **Alunos:** Visualizem tarefas, enviem redações e recebam feedback
 
-### Features Implementadas (Fase 1)
+### Features Implementadas (Fase 1 e 2)
 
 - ✅ Autenticação com cookies httpOnly (mais seguro)
-- ✅ Sidebar com navegação
+- ✅ Sidebar com navegação e botões de retorno
 - ✅ Dashboard (placeholder)
 - ✅ CRUD de turmas para professores
+- ✅ Listagem de Tarefas por Turma (Em Andamento / Encerradas) 
 - ✅ Sistema de rotas protegidas
 - ✅ Estado global com Zustand
 - ✅ Design responsivo com Tailwind CSS
@@ -78,10 +79,12 @@ src/
 │   │   │   └── ClassCard.jsx     # Card de turma
 │   │   ├── hooks/
 │   │   │   └── useClasses.js     # Hook para buscar turmas
+│   │   │   └── useClassDetails.js  # Hook para detalhes da turma 
 │   │   ├── services/
 │   │   │   └── classService.js   # API calls
 │   │   └── pages/
 │   │       └── ClassesPage.jsx   # Página de turmas (grid + modal)
+│   │       └── ClassTasksPage.jsx# Detalhes da turma + Tarefas  
 │   │
 │   ├── dashboard/
 │   │   └── pages/
@@ -446,9 +449,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: redacao_corretor
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ""
+      POSTGRES_USER: ""
+      POSTGRES_PASSWORD: ""
 
   backend:
     build: ./redacao-corretor-backend
@@ -457,7 +460,7 @@ services:
     depends_on:
       - postgres
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/redacao_corretor
+      DATABASE_URL: ""
 
   frontend:
     build: ./redacao-corretor-frontend
@@ -540,9 +543,9 @@ teachers (1) ──────< (N) classes
 ## Próximas Implementações
 
 ### Fase 2 - Tasks
-- [ ] Página de detalhes da turma
+- [x] Página de detalhes da turma
 - [ ] CRUD de tarefas
-- [ ] Listagem de tasks separada: "Em Andamento" / "Concluídas"
+- [x] Listagem de tasks separada: "Em Andamento" / "Concluídas"
 
 ### Fase 3 - Essays
 - [ ] Upload de redações (JPEG, PNG, PDF)
