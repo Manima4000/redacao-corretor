@@ -48,11 +48,15 @@ services:
       UPLOAD_STORAGE_TYPE: ${UPLOAD_STORAGE_TYPE}
       UPLOAD_DIR: ${UPLOAD_DIR}
       UPLOAD_MAX_SIZE: ${UPLOAD_MAX_SIZE}
+      GOOGLE_DRIVE_AUTH_TYPE: ${GOOGLE_DRIVE_AUTH_TYPE}
+      GOOGLE_DRIVE_CREDENTIALS_PATH: ${GOOGLE_DRIVE_CREDENTIALS_PATH}
+      GOOGLE_DRIVE_FOLDER_ID: ${GOOGLE_DRIVE_FOLDER_ID}
     ports:
       - "${PORT}:${PORT}"
     volumes:
       - ./redacao-corretor-backend:/app
       - /app/node_modules
+      - ./redacao-corretor-backend/credentials:/app/credentials
       - uploads_data:/app/uploads
       - logs_data:/app/logs
     depends_on:

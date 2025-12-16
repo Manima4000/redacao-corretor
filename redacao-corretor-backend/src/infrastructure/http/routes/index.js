@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from './auth.routes.js';
 import classRoutes from './classes.routes.js';
 import taskRoutes from './tasks.routes.js';
+import essayRoutes from './essays.routes.js';
 
 const router = Router();
 
@@ -11,9 +12,9 @@ const router = Router();
 router.use('/auth', authRoutes);
 router.use('/classes', classRoutes);
 router.use('/tasks', taskRoutes);
+router.use('/essays', essayRoutes);
 
 // Rotas futuras serão adicionadas aqui:
-// router.use('/essays', essayRoutes);
 // router.use('/notifications', notificationRoutes);
 // router.use('/comments', commentRoutes);
 

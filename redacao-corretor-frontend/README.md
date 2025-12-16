@@ -32,7 +32,9 @@ Frontend do sistema de correção de redações, permitindo que:
 - ✅ Sidebar com navegação e botões de retorno
 - ✅ Dashboard (placeholder)
 - ✅ CRUD de turmas para professores
-- ✅ Listagem de Tarefas por Turma (Em Andamento / Encerradas) 
+- ✅ Listagem de Tarefas por Turma (Em Andamento / Encerradas)
+- ✅ Detalhes da Tarefa com Lista de Alunos (Entregas/Pendentes)
+- ✅ Estatísticas de Entrega (Total, Entregas, Pendentes, Taxa)
 - ✅ Sistema de rotas protegidas
 - ✅ Estado global com Zustand
 - ✅ Design responsivo com Tailwind CSS
@@ -78,13 +80,23 @@ src/
 │   │   ├── components/
 │   │   │   └── ClassCard.jsx     # Card de turma
 │   │   ├── hooks/
-│   │   │   └── useClasses.js     # Hook para buscar turmas
-│   │   │   └── useClassDetails.js  # Hook para detalhes da turma 
+│   │   │   ├── useClasses.js     # Hook para buscar turmas
+│   │   │   └── useClassDetails.js  # Hook para detalhes da turma
 │   │   ├── services/
 │   │   │   └── classService.js   # API calls
 │   │   └── pages/
-│   │       └── ClassesPage.jsx   # Página de turmas (grid + modal)
-│   │       └── ClassTasksPage.jsx# Detalhes da turma + Tarefas  
+│   │       ├── ClassesPage.jsx   # Página de turmas (grid + modal)
+│   │       └── ClassTasksPage.jsx# Detalhes da turma + Tarefas
+│   │
+│   ├── tasks/                    # Gerenciamento de tarefas
+│   │   ├── components/
+│   │   │   └── StudentListItem.jsx # Card de aluno com status
+│   │   ├── hooks/
+│   │   │   └── useTaskStudents.js # Hook para buscar alunos da tarefa
+│   │   ├── services/
+│   │   │   └── taskService.js    # API calls
+│   │   └── pages/
+│   │       └── TaskStudentsPage.jsx # Detalhes da tarefa + Lista de alunos  
 │   │
 │   ├── dashboard/
 │   │   └── pages/
@@ -312,8 +324,9 @@ const useAuthStore = create(
 | Rota | Componente | Proteção | Descrição |
 |------|------------|----------|-----------|
 | `/dashboard` | DashboardPage | Auth | Dashboard com estatísticas |
-| `/classes` | ClassesPage | Auth | Listagem de turmas |
-| `/classes/:id` | ClassDetailPage | Auth | Detalhes da turma (futuro) |
+| `/classes` | ClassesPage | Auth + Teacher | Listagem de turmas |
+| `/classes/:id` | ClassTasksPage | Auth + Teacher | Tarefas da turma (Em Andamento/Encerradas) |
+| `/classes/:classId/tasks/:taskId` | TaskStudentsPage | Auth + Teacher | Detalhes da tarefa + Lista de alunos |
 | `/profile` | ProfilePage | Auth | Perfil do usuário (futuro) |
 
 ### Proteção de Rotas
@@ -542,15 +555,20 @@ teachers (1) ──────< (N) classes
 
 ## Próximas Implementações
 
-### Fase 2 - Tasks
+### Fase 2 - Tasks ✅ COMPLETA
 - [x] Página de detalhes da turma
-- [ ] CRUD de tarefas
+- [x] CRUD de tarefas
 - [x] Listagem de tasks separada: "Em Andamento" / "Concluídas"
+- [x] Página de detalhes da tarefa com lista de alunos
+- [x] Estatísticas de entrega (Total, Entregas, Pendentes, Taxa)
+- [x] Separação visual: Entregas Realizadas vs Pendentes
 
-### Fase 3 - Essays
+### Fase 3 - Essays (EM ANDAMENTO)
+- [ ] Integração com Google Drive para storage de imagens
+- [ ] Validação de arquivos (tipo, tamanho, metadados)
 - [ ] Upload de redações (JPEG, PNG, PDF)
 - [ ] Preview de redações
-- [ ] Lista de alunos com status (ícones coloridos)
+- [ ] Atualização de status de entrega em tempo real
 
 ### Fase 4 - Annotations
 - [ ] Integrar AnnotationDemo com essays
