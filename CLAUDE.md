@@ -1,283 +1,869 @@
-# CLAUDE.md - Contexto do Projeto
+# Redação Corretor - Documentação para IA
 
-> **IMPORTANTE**: Este arquivo deve ser atualizado sempre que houver mudanças significativas no projeto.
+> **IMPORTANTE:** Este arquivo contém contexto essencial para qualquer IA trabalhando neste projeto. SEMPRE leia este arquivo antes de fazer alterações e SEMPRE o atualize quando o projeto evoluir.
 
 ---
 
-## 📋 Sobre o Projeto
+## 📋 Índice
 
-Sistema web para correção de redações onde professores podem criar tarefas, alunos enviam redações (fotos/PDFs), e professores corrigem usando anotações com caneta de tablet.
+1. [Visão Geral do Projeto](#visão-geral-do-projeto)
+2. [Princípios SOLID](#princípios-solid)
+3. [Arquitetura Clean Architecture](#arquitetura-clean-architecture)
+4. [Modelo de Dados](#modelo-de-dados)
+5. [Autenticação e Autorização](#autenticação-e-autorização)
+6. [Regras de Desenvolvimento](#regras-de-desenvolvimento)
+7. [Documentação Swagger](#documentação-swagger)
+8. [Variáveis de Ambiente](#variáveis-de-ambiente)
+
+---
+
+## Visão Geral do Projeto
+
+### Propósito
+Sistema web para professora corrigir redações de alunos de diferentes turmas, com anotações usando caneta de tablet.
+
+### Funcionalidades Principais
+- **Professora:** Criar turmas e tarefas, receber redações dos alunos, fazer anotações com caneta de tablet, enviar feedback
+- **Aluno:** Ver tarefas da sua turma, enviar redações (fotos/PDF), receber correções com anotações
 
 ### Stack Tecnológica
-
-**Backend:**
-- Node.js + Express.js
-- PostgreSQL
-- JWT (autenticação)
-- Socket.io (notificações em tempo real)
-- Multer (upload de arquivos)
-- Docker + Docker Compose
-
-**Frontend (em desenvolvimento):**
-- React + Vite
-- Fabric.js (anotações com caneta)
-- Axios
-- React Router
+- **Backend:** Node.js + Express.js + PostgreSQL
+- **Frontend:** React (repositório separado)
+- **Autenticação:** JWT (access token + refresh token)
+- **Anotações:** Fabric.js (suporte a stylus pressure)
+- **Notificações:** Socket.io (WebSocket)
+- **Deploy:** Docker + Docker Compose
 
 ---
 
-## 🏗️ Arquitetura - Clean Architecture + SOLID
+## Princípios SOLID
 
-### Princípio Fundamental: SEMPRE SEGUIR SOLID
+**Este projeto DEVE seguir RIGOROSAMENTE os princípios SOLID em TODAS as implementações.**
 
-**Toda mudança no código DEVE seguir os princípios SOLID:**
+### S - Single Responsibility Principle (Princípio da Responsabilidade Única)
+> "Uma classe deve ter um, e somente um, motivo para mudar."
 
-1. **Single Responsibility Principle (SRP)**
-   - Cada classe/função tem UMA responsabilidade
-   - Use Cases fazem apenas uma coisa
-   - Controllers apenas recebem requests e delegam
-   - Repositories apenas acessam banco de dados
+**Como aplicamos:**
+- **Use Cases:** Cada caso de uso faz UMA operação de negócio
+  - ✅ `RegisterUseCase` - apenas registra usuários
+  - ✅ `LoginUseCase` - apenas faz login
+  - ❌ `AuthUseCase` - NÃO! Faz muitas coisas
+- **Repositories:** Apenas acesso a dados, sem lógica de negócio
+- **Controllers:** Apenas recebem requisições e chamam use cases
+- **Services:** Cada serviço tem uma responsabilidade específica (AuthService, FileStorageService, NotificationService)
 
-2. **Open/Closed Principle (OCP)**
-   - Aberto para extensão, fechado para modificação
-   - Use interfaces para permitir diferentes implementações
-   - Exemplo: `IStudentRepository` pode ter implementação PostgreSQL, MongoDB, etc
+**Exemplo:**
+```javascript
+// ✅ BOM - Responsabilidade única
+export class CreateTaskUseCase {
+  constructor(taskRepository, notificationService) {
+    this.taskRepository = taskRepository;
+    this.notificationService = notificationService;
+  }
 
-3. **Liskov Substitution Principle (LSP)**
-   - Qualquer implementação de interface pode substituir outra
-   - `StudentRepository` e `TeacherRepository` podem ser trocados sem quebrar código
+  async execute(taskDTO) {
+    // Apenas cria task e notifica alunos
+    const task = await this.taskRepository.create(taskDTO);
+    await this.notificationService.notifyStudentsOfNewTask(task);
+    return task;
+  }
+}
 
-4. **Interface Segregation Principle (ISP)**
-   - Interfaces pequenas e específicas
-   - Não force dependências desnecessárias
+// ❌ RUIM - Múltiplas responsabilidades
+export class TaskManager {
+  async createTask() { /* ... */ }
+  async uploadEssay() { /* ... */ }  // Deveria ser outro use case!
+  async sendNotification() { /* ... */ }  // Deveria ser no NotificationService!
+}
+```
 
-5. **Dependency Inversion Principle (DIP)**
-   - Dependa de abstrações, não de implementações concretas
-   - Use Cases recebem interfaces via Dependency Injection
-   - Exemplo: `constructor(studentRepository, authService)` - não instancia dentro
+### O - Open/Closed Principle (Princípio Aberto/Fechado)
+> "Entidades devem estar abertas para extensão, mas fechadas para modificação."
+
+**Como aplicamos:**
+- Usamos **interfaces** para permitir diferentes implementações SEM modificar código existente
+- Use Cases dependem de abstrações (interfaces), não implementações concretas
+
+**Exemplo:**
+```javascript
+// Interface (abstração)
+export class IFileStorageService {
+  async upload(file) { throw new Error('Not implemented'); }
+  async delete(fileUrl) { throw new Error('Not implemented'); }
+}
+
+// Implementação 1: Local
+export class LocalFileStorageService extends IFileStorageService {
+  async upload(file) { /* salva localmente */ }
+  async delete(fileUrl) { /* deleta arquivo local */ }
+}
+
+// Implementação 2: AWS S3
+export class S3FileStorageService extends IFileStorageService {
+  async upload(file) { /* upload para S3 */ }
+  async delete(fileUrl) { /* deleta do S3 */ }
+}
+
+// Use Case NÃO precisa mudar ao trocar implementação!
+export class UploadEssayUseCase {
+  constructor(essayRepository, fileStorageService) { // Interface!
+    this.essayRepository = essayRepository;
+    this.fileStorageService = fileStorageService; // Pode ser Local OU S3
+  }
+
+  async execute(file) {
+    const fileUrl = await this.fileStorageService.upload(file);
+    return await this.essayRepository.create({ fileUrl });
+  }
+}
+```
+
+### L - Liskov Substitution Principle (Princípio da Substituição de Liskov)
+> "Subclasses devem ser substituíveis por suas classes base."
+
+**Como aplicamos:**
+- Qualquer implementação de `IStudentRepository` deve funcionar da mesma forma
+- Se trocarmos `LocalFileStorageService` por `S3FileStorageService`, o sistema continua funcionando
+
+**Exemplo:**
+```javascript
+// Use Case aceita QUALQUER implementação de IStudentRepository
+export class GetStudentUseCase {
+  constructor(studentRepository) { // IStudentRepository
+    this.studentRepository = studentRepository;
+  }
+
+  async execute(studentId) {
+    return await this.studentRepository.findById(studentId);
+  }
+}
+
+// Ambas as implementações funcionam igualmente
+const useCase1 = new GetStudentUseCase(new PostgresStudentRepository());
+const useCase2 = new GetStudentUseCase(new MongoStudentRepository());
+// Comportamento idêntico!
+```
+
+### I - Interface Segregation Principle (Princípio da Segregação de Interfaces)
+> "Clientes não devem ser forçados a depender de interfaces que não usam."
+
+**Como aplicamos:**
+- Interfaces pequenas e específicas
+- Se um use case só precisa buscar usuário por email, não force ele a depender de TODA a interface do repository
+
+**Exemplo:**
+```javascript
+// ✅ BOM - Interfaces pequenas e específicas
+export class IUserFinder {
+  async findByEmail(email) { throw new Error('Not implemented'); }
+}
+
+export class IUserCreator {
+  async create(userData) { throw new Error('Not implemented'); }
+}
+
+// Use Case só depende do que realmente usa
+export class LoginUseCase {
+  constructor(userFinder, authService) { // Só precisa de findByEmail
+    this.userFinder = userFinder;
+    this.authService = authService;
+  }
+}
+
+// ❌ RUIM - Interface inchada
+export class IUserRepository {
+  async create() {}
+  async findById() {}
+  async findByEmail() {}
+  async findAll() {}
+  async update() {}
+  async delete() {}
+  async countByClass() {}
+  async getStatistics() {}
+  // LoginUseCase é forçado a depender de TUDO isso!
+}
+```
+
+### D - Dependency Inversion Principle (Princípio da Inversão de Dependência)
+> "Dependa de abstrações, não de implementações concretas."
+
+**Como aplicamos:**
+- Use Cases recebem **interfaces** via construtor (Dependency Injection)
+- NUNCA instanciam dependências internamente com `new`
+
+**Exemplo:**
+```javascript
+// ✅ BOM - Dependency Injection com interfaces
+export class RegisterUseCase {
+  constructor(studentRepository, teacherRepository, authService) { // Abstrações injetadas
+    this.studentRepository = studentRepository;
+    this.teacherRepository = teacherRepository;
+    this.authService = authService;
+  }
+
+  async execute(registerDTO) {
+    // Usa as abstrações injetadas
+    const student = await this.studentRepository.create(registerDTO);
+    const token = this.authService.generateAccessToken(student);
+    return { student, token };
+  }
+}
+
+// ❌ RUIM - Instancia dependências concretas
+export class RegisterUseCase {
+  async execute(registerDTO) {
+    const repo = new StudentRepository(); // Dependência concreta!
+    const auth = new AuthService(); // Dependência concreta!
+    // Impossível testar ou trocar implementação
+  }
+}
+
+// Injeção de dependências no controller
+const studentRepo = new StudentRepository();
+const teacherRepo = new TeacherRepository();
+const authService = new AuthService();
+const registerUseCase = new RegisterUseCase(studentRepo, teacherRepo, authService);
+```
 
 ---
 
-## 📁 Estrutura do Backend
+## Arquitetura Clean Architecture
+
+### Estrutura de Camadas
 
 ```
-redacao-corretor-backend/
-├── src/
-│   ├── application/              # Camada de Aplicação
-│   │   ├── use-cases/            # Casos de uso (lógica de negócio)
-│   │   │   ├── auth/             # RegisterUseCase, LoginUseCase, RefreshTokenUseCase
-│   │   │   ├── tasks/            # (a implementar)
-│   │   │   ├── essays/           # (a implementar)
-│   │   │   ├── classes/          # (a implementar)
-│   │   │   ├── notifications/    # (a implementar)
-│   │   │   └── comments/         # (a implementar)
-│   │   └── dtos/                 # Data Transfer Objects (validação)
-│   │
-│   ├── domain/                   # Camada de Domínio (regras de negócio)
-│   │   ├── entities/             # Entidades do domínio
-│   │   │   ├── Student.js        # ✅ Aluno
-│   │   │   ├── Teacher.js        # ✅ Professor
-│   │   │   ├── Class.js          # ✅ Turma
-│   │   │   ├── Task.js           # ✅ Tarefa
-│   │   │   ├── Essay.js          # ✅ Redação
-│   │   │   ├── Annotation.js     # ✅ Anotação
-│   │   │   ├── Comment.js        # ✅ Comentário
-│   │   │   └── Notification.js   # ✅ Notificação
-│   │   ├── repositories/         # Interfaces (contratos)
-│   │   │   ├── IStudentRepository.js
-│   │   │   ├── ITeacherRepository.js
-│   │   │   └── (outras interfaces...)
-│   │   └── services/             # Interfaces de serviços
-│   │       ├── IAuthService.js
-│   │       ├── IFileStorageService.js
-│   │       └── INotificationService.js
-│   │
-│   ├── infrastructure/           # Camada de Infraestrutura (implementações)
-│   │   ├── database/
-│   │   │   ├── config/
-│   │   │   │   └── database.js   # Pool de conexões PostgreSQL
-│   │   │   ├── migrations/       # 7 migrations (students, teachers, classes, etc)
-│   │   │   │   ├── 001_create_students_teachers.js  # ✅
-│   │   │   │   ├── 002_create_classes.js            # ✅
-│   │   │   │   ├── 003_create_tasks.js              # ✅
-│   │   │   │   ├── 004_create_essays.js             # ✅
-│   │   │   │   ├── 005_create_annotations.js        # ✅
-│   │   │   │   ├── 006_create_comments.js           # ✅
-│   │   │   │   └── 007_create_notifications.js      # ✅
-│   │   │   └── repositories/     # Implementações concretas
-│   │   │       ├── StudentRepository.js  # ✅
-│   │   │       └── TeacherRepository.js  # ✅
-│   │   ├── services/
-│   │   │   ├── AuthService.js             # ✅ JWT + bcrypt
-│   │   │   ├── FileStorageService.js      # (a implementar)
-│   │   │   └── NotificationService.js     # (a implementar)
-│   │   └── http/
-│   │       ├── middleware/
-│   │       │   ├── authMiddleware.js      # ✅ Verifica JWT
-│   │       │   ├── roleMiddleware.js      # ✅ Verifica tipo (student/teacher)
-│   │       │   ├── errorHandler.js        # ✅ Tratamento global de erros
-│   │       │   └── validationMiddleware.js # ✅ Validação com Joi
-│   │       ├── controllers/
-│   │       │   └── AuthController.js      # ✅
-│   │       ├── routes/
-│   │       │   ├── auth.routes.js         # ✅
-│   │       │   └── index.js               # ✅
-│   │       └── validators/
-│   │           └── authValidators.js      # ✅ Schemas Joi
-│   │
-│   ├── config/
-│   │   └── env.js                # Configurações centralizadas
-│   ├── utils/
-│   │   ├── errors.js             # Classes de erro customizadas
-│   │   └── logger.js             # Winston logger
-│   └── server.js                 # ✅ Entry point
+src/
+├── domain/                    # Camada de Domínio (Regras de Negócio)
+│   ├── entities/              # Entidades de negócio
+│   │   ├── Student.js         # Aluno (NÃO User com role!)
+│   │   ├── Teacher.js         # Professor (NÃO User com role!)
+│   │   ├── Class.js           # Turma
+│   │   ├── Task.js            # Tarefa/Tema
+│   │   ├── Essay.js           # Redação
+│   │   └── Annotation.js      # Anotações
+│   ├── repositories/          # INTERFACES de repositórios
+│   │   ├── IStudentRepository.js
+│   │   ├── ITeacherRepository.js
+│   │   ├── IClassRepository.js
+│   │   └── ...
+│   └── services/              # INTERFACES de serviços
+│       ├── IAuthService.js
+│       ├── IFileStorageService.js
+│       └── INotificationService.js
 │
-├── Dockerfile                    # ✅
-├── .dockerignore                 # ✅
-├── .env                          # ✅
-└── package.json                  # ✅
+├── application/               # Camada de Aplicação (Casos de Uso)
+│   ├── use-cases/
+│   │   ├── auth/
+│   │   │   ├── RegisterUseCase.js
+│   │   │   ├── LoginUseCase.js
+│   │   │   ├── RefreshTokenUseCase.js
+│   │   │   └── GetCurrentUserUseCase.js
+│   │   ├── classes/
+│   │   │   ├── CreateClassUseCase.js
+│   │   │   └── ...
+│   │   ├── tasks/
+│   │   ├── essays/
+│   │   └── annotations/
+│   └── dtos/                  # Data Transfer Objects
+│       ├── RegisterDTO.js
+│       ├── LoginDTO.js
+│       └── ...
+│
+└── infrastructure/            # Camada de Infraestrutura (Implementações)
+    ├── database/
+    │   ├── config/
+    │   │   └── database.js    # Pool PostgreSQL
+    │   ├── migrations/        # Migrations
+    │   │   ├── 001_create_teachers.js
+    │   │   ├── 002_create_classes.js
+    │   │   ├── 003_create_students.js
+    │   │   ├── 004_create_tasks.js
+    │   │   ├── 005_create_essays.js
+    │   │   ├── 006_create_annotations.js
+    │   │   └── 007_create_comments_and_notifications.js
+    │   └── repositories/      # Implementações dos repositórios
+    │       ├── StudentRepository.js
+    │       ├── TeacherRepository.js
+    │       └── ...
+    ├── services/              # Implementações dos serviços
+    │   ├── AuthService.js     # JWT + bcrypt
+    │   ├── FileStorageService.js
+    │   └── NotificationService.js
+    └── http/
+        ├── middleware/
+        │   ├── authMiddleware.js
+        │   ├── requireTeacher.js
+        │   ├── errorHandler.js
+        │   └── validate.js
+        ├── controllers/
+        │   ├── AuthController.js
+        │   ├── ClassController.js
+        │   └── ...
+        ├── routes/
+        │   ├── auth.routes.js
+        │   ├── classes.routes.js
+        │   └── ...
+        └── validators/
+            ├── authSchemas.js
+            └── ...
+```
+
+### Fluxo de Dados
+
+```
+Request → Routes → Middleware → Controller → Use Case → Repository → Database
+                                    ↓
+                                 Response
+```
+
+**Exemplo completo de fluxo:**
+
+1. **Route** (`auth.routes.js`):
+```javascript
+router.post('/register', validate(registerSchema), authController.register);
+```
+
+2. **Controller** (`AuthController.js`):
+```javascript
+async register(req, res, next) {
+  try {
+    const registerDTO = new RegisterDTO(req.body);
+    const result = await this.registerUseCase.execute(registerDTO);
+    res.status(201).json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+}
+```
+
+3. **Use Case** (`RegisterUseCase.js`):
+```javascript
+async execute(registerDTO) {
+  // Lógica de negócio
+  const existingStudent = await this.studentRepository.findByEmail(registerDTO.email);
+  if (existingStudent) throw new ConflictError('Email já cadastrado');
+
+  const passwordHash = await this.authService.hashPassword(registerDTO.password);
+  const student = await this.studentRepository.create({ ...registerDTO, passwordHash });
+
+  const accessToken = this.authService.generateAccessToken(student);
+  const refreshToken = this.authService.generateRefreshToken(student);
+
+  return { student: student.toPublicData(), accessToken, refreshToken };
+}
+```
+
+4. **Repository** (`StudentRepository.js`):
+```javascript
+async create(studentData) {
+  const sql = `INSERT INTO students (...) VALUES (...) RETURNING *`;
+  const result = await query(sql, values);
+  return this._mapToEntity(result.rows[0]);
+}
 ```
 
 ---
 
-## 🗄️ Modelo de Dados (PostgreSQL)
+## Modelo de Dados
 
-### Tabelas Principais
+### ⚠️ ATENÇÃO: NÃO usamos `role`!
 
-**students** - Tabela de alunos
-- `id` (UUID, PK)
-- `email` (VARCHAR, UNIQUE)
-- `password_hash` (VARCHAR)
-- `full_name` (VARCHAR)
-- `enrollment_number` (VARCHAR, opcional)
-- `created_at`, `updated_at`
+**IMPORTANTE:** Este projeto NÃO usa um modelo `User` com campo `role`. Usamos entidades SEPARADAS:
+- ✅ `Student` (tabela `students`)
+- ✅ `Teacher` (tabela `teachers`)
+- ❌ `User` com `role` - NÃO EXISTE!
 
-**teachers** - Tabela de professores
-- `id` (UUID, PK)
-- `email` (VARCHAR, UNIQUE)
-- `password_hash` (VARCHAR)
-- `full_name` (VARCHAR)
-- `specialization` (VARCHAR, opcional)
-- `created_at`, `updated_at`
+### Schema do Banco de Dados (PostgreSQL)
 
-**classes** - Turmas (AFA, EFFOM, etc)
-- `id` (UUID, PK)
-- `name` (VARCHAR) - Ex: "Turma AFA"
-- `description` (TEXT)
-- `teacher_id` (FK → teachers)
-- `created_at`, `updated_at`
+```sql
+-- 1. TEACHERS (professores)
+CREATE TABLE teachers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  specialization VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**class_students** - Relação many-to-many
-- `class_id` (FK → classes)
-- `student_id` (FK → students)
-- `enrolled_at`
+-- 2. CLASSES (turmas)
+CREATE TABLE classes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL,              -- Ex: "Turma AFA", "Turma EFFOM"
+  description TEXT,
+  teacher_id UUID REFERENCES teachers(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**tasks** - Tarefas/temas de redação
-- `id` (UUID, PK)
-- `title`, `description`
-- `class_id` (FK → classes)
-- `teacher_id` (FK → teachers)
-- `deadline` (TIMESTAMP)
-- `created_at`, `updated_at`
+-- 3. STUDENTS (alunos) - ⚠️ Cada aluno pertence a UMA turma específica
+CREATE TABLE students (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255) NOT NULL,
+  enrollment_number VARCHAR(50),           -- Matrícula
+  class_id UUID REFERENCES classes(id) ON DELETE SET NULL,  -- ⚠️ ONE-TO-MANY!
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**essays** - Redações enviadas
-- `id` (UUID, PK)
-- `task_id` (FK → tasks)
-- `student_id` (FK → students)
-- `file_url` (VARCHAR) - URL do arquivo
-- `file_type` (VARCHAR) - MIME type
-- `status` (ENUM: pending, correcting, corrected)
-- `submitted_at`, `corrected_at`
-- UNIQUE(task_id, student_id) - Um aluno só pode enviar uma redação por tarefa
+-- 4. TASKS (tarefas/temas) - Cada task pertence a uma turma
+CREATE TABLE tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,               -- Tema da redação
+  class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+  deadline TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**annotations** - Anotações da professora
-- `id` (UUID, PK)
-- `essay_id` (FK → essays)
-- `annotation_data` (JSONB) - Serialização do Fabric.js
-- `page_number` (INTEGER) - Para PDFs com múltiplas páginas
-- `created_at`, `updated_at`
+-- 5. ESSAYS (redações)
+CREATE TABLE essays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  file_url VARCHAR(500) NOT NULL,          -- URL do arquivo (S3 ou local)
+  status VARCHAR(20) DEFAULT 'pending',    -- pending, correcting, corrected
+  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  corrected_at TIMESTAMP,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**comments** - Chat entre professora e aluno
-- `id` (UUID, PK)
-- `essay_id` (FK → essays)
-- `author_id` (UUID) - ID do autor
-- `author_type` (ENUM: student, teacher) - Tipo do autor
-- `content` (TEXT)
-- `created_at`
+-- 6. ANNOTATIONS (anotações da professora)
+CREATE TABLE annotations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  essay_id UUID REFERENCES essays(id) ON DELETE CASCADE,
+  annotation_data JSONB NOT NULL,          -- Serialização do Fabric.js
+  page_number INTEGER DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
-**notifications** - Notificações
-- `id` (UUID, PK)
-- `recipient_id` (UUID) - ID do destinatário
-- `recipient_type` (ENUM: student, teacher) - Tipo do destinatário
-- `type` (VARCHAR) - Tipo de notificação
-- `title`, `message`
-- `related_id` (UUID) - ID relacionado (task, essay, etc)
-- `is_read` (BOOLEAN)
-- `created_at`
+-- 7. COMMENTS (chat professora-aluno)
+CREATE TABLE comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  essay_id UUID REFERENCES essays(id) ON DELETE CASCADE,
+  author_id UUID NOT NULL,                 -- ID do student OU teacher
+  author_type VARCHAR(10) NOT NULL,        -- 'student' ou 'teacher'
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. NOTIFICATIONS
+CREATE TABLE notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL,                   -- ID do student OU teacher
+  user_type VARCHAR(10) NOT NULL,          -- 'student' ou 'teacher'
+  type VARCHAR(50) NOT NULL,               -- 'new_task', 'essay_submitted', etc
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Relacionamentos
+
+```
+teachers (1) ──────< (N) classes
+                           │
+                           ├──< (N) students  ⚠️ ONE-TO-MANY!
+                           │
+                           └──< (N) tasks
+                                    │
+                                    └──< (N) essays ──< (N) annotations
+                                                │
+                                                └──< (N) comments
+```
+
+**⚠️ MUDANÇA IMPORTANTE:**
+- Antes: `class_students` (many-to-many) - aluno podia estar em várias turmas
+- Agora: `students.class_id` (one-to-many) - aluno tem UMA turma específica
 
 ---
 
-## 🔐 Sistema de Autenticação
+## Autenticação e Autorização
 
-### JWT com Access + Refresh Token
+### Estratégia: JWT com Refresh Token
 
-**Access Token:**
-- Duração: 15 minutos
-- Payload: `{ id, email, userType, tokenType: 'access' }`
-- Usado em todas as requisições autenticadas
+**⚠️ IMPORTANTE:** NÃO usamos campo `role`! Usamos campo `type` com valores `'student'` ou `'teacher'`.
 
-**Refresh Token:**
-- Duração: 7 dias
-- Payload: `{ id, tokenType: 'refresh' }`
-- Usado para renovar access token
+### Fluxo de Registro
 
-### Fluxo de Autenticação
+```javascript
+// DTO
+export class RegisterDTO {
+  constructor({ email, password, fullName, type, enrollmentNumber, specialization }) {
+    this.email = email;
+    this.password = password;
+    this.fullName = fullName;
+    this.type = type; // ⚠️ 'student' ou 'teacher' (NÃO 'role'!)
+    this.enrollmentNumber = enrollmentNumber; // Apenas para students
+    this.specialization = specialization; // Apenas para teachers
+  }
 
-1. **Registro:** `POST /api/auth/register`
-   - Aceita: `{ email, password, fullName, type, enrollmentNumber?, specialization? }`
-   - Retorna: `{ user, accessToken, refreshToken }`
-   - Cria Student OU Teacher baseado no `type`
+  isStudent() {
+    return this.type === 'student';
+  }
 
-2. **Login:** `POST /api/auth/login`
-   - Aceita: `{ email, password }`
-   - Busca em ambas tabelas (students e teachers)
-   - Retorna: `{ user, accessToken, refreshToken }`
+  isTeacher() {
+    return this.type === 'teacher';
+  }
+}
 
-3. **Refresh:** `POST /api/auth/refresh`
-   - Aceita: `{ refreshToken }`
-   - Retorna: `{ accessToken, user }`
+// Use Case
+export class RegisterUseCase {
+  async execute(registerDTO) {
+    // Verifica email em AMBAS as tabelas
+    const existingStudent = await this.studentRepository.findByEmail(registerDTO.email);
+    const existingTeacher = await this.teacherRepository.findByEmail(registerDTO.email);
 
-4. **Me:** `GET /api/auth/me`
-   - Header: `Authorization: Bearer <accessToken>`
-   - Retorna: `{ user }` (dados do usuário logado)
+    if (existingStudent || existingTeacher) {
+      throw new ConflictError('Email já cadastrado');
+    }
+
+    const passwordHash = await this.authService.hashPassword(registerDTO.password);
+
+    let user;
+    if (registerDTO.isStudent()) {
+      user = await this.studentRepository.create({
+        email: registerDTO.email,
+        passwordHash,
+        fullName: registerDTO.fullName,
+        enrollmentNumber: registerDTO.enrollmentNumber,
+      });
+    } else if (registerDTO.isTeacher()) {
+      user = await this.teacherRepository.create({
+        email: registerDTO.email,
+        passwordHash,
+        fullName: registerDTO.fullName,
+        specialization: registerDTO.specialization,
+      });
+    }
+
+    const accessToken = this.authService.generateAccessToken(user);
+    const refreshToken = this.authService.generateRefreshToken(user);
+
+    return {
+      user: user.toPublicData(),
+      accessToken,
+      refreshToken,
+    };
+  }
+}
+```
+
+### Fluxo de Login
+
+```javascript
+export class LoginUseCase {
+  async execute(loginDTO) {
+    // Busca em AMBAS as tabelas
+    let user = await this.studentRepository.findByEmail(loginDTO.email);
+    if (!user) {
+      user = await this.teacherRepository.findByEmail(loginDTO.email);
+    }
+
+    if (!user) {
+      throw new UnauthorizedError('Credenciais inválidas');
+    }
+
+    const isPasswordValid = await this.authService.comparePassword(
+      loginDTO.password,
+      user.passwordHash
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedError('Credenciais inválidas');
+    }
+
+    const accessToken = this.authService.generateAccessToken(user);
+    const refreshToken = this.authService.generateRefreshToken(user);
+
+    return {
+      user: user.toPublicData(),
+      accessToken,
+      refreshToken,
+    };
+  }
+}
+```
+
+### JWT Payload
+
+```javascript
+// AuthService.js
+generateAccessToken(user) {
+  const publicData = user.toPublicData();
+  const payload = {
+    id: publicData.id,
+    email: publicData.email,
+    userType: publicData.type, // ⚠️ 'student' ou 'teacher' (NÃO 'role'!)
+    tokenType: 'access',
+  };
+
+  return jwt.sign(payload, this.jwtSecret, {
+    expiresIn: '15m',
+    issuer: 'redacao-corretor-api',
+    audience: 'redacao-corretor-frontend',
+  });
+}
+```
+
+### ⚠️ IMPORTANTE: Tokens em Cookies HttpOnly (Atualizado em 2025-12-16)
+
+**Mudança de Segurança:** Os tokens JWT agora são enviados via **cookies httpOnly** ao invés do body da resposta.
+
+**Motivos:**
+- ✅ **Mais seguro:** Cookies httpOnly não podem ser acessados por JavaScript (previne XSS)
+- ✅ **Enviados automaticamente:** Browser envia cookies em todas as requisições
+- ✅ **Flags de segurança:** `secure`, `sameSite=strict` para proteção adicional
+
+**Como Funciona:**
+
+```javascript
+// AuthController.js - Helper para definir cookies
+_setTokenCookies(res, accessToken, refreshToken) {
+  // Access token (15 minutos)
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,                             // Não acessível via JavaScript
+    secure: process.env.NODE_ENV === 'production', // HTTPS apenas em produção
+    sameSite: 'strict',                         // Previne CSRF
+    maxAge: 15 * 60 * 1000,                    // 15 minutos em ms
+  });
+
+  // Refresh token (7 dias)
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,           // 7 dias em ms
+  });
+}
+
+// Login/Register - Define cookies e retorna APENAS dados do usuário
+async login(req, res, next) {
+  try {
+    const result = await this.loginUseCase.execute(loginDTO);
+
+    // Define tokens em cookies httpOnly
+    this._setTokenCookies(res, result.accessToken, result.refreshToken);
+
+    // Retorna apenas dados do usuário (SEM tokens)
+    res.status(200).json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      data: {
+        user: result.user, // ⚠️ Apenas user, sem tokens!
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Refresh - Lê refreshToken do cookie
+async refresh(req, res, next) {
+  try {
+    const refreshToken = req.cookies.refreshToken; // ⚠️ Lê do cookie!
+
+    const result = await this.refreshTokenUseCase.execute(refreshToken);
+
+    // Define novo accessToken no cookie
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { user: result.user },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Logout - Limpa cookies
+async logout(req, res, next) {
+  try {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout realizado com sucesso',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+```
+
+**Endpoints Atualizados:**
+- `POST /api/auth/register` - Define cookies, retorna `{ user }`
+- `POST /api/auth/login` - Define cookies, retorna `{ user }`
+- `POST /api/auth/refresh` - Lê refreshToken do cookie, define novo accessToken
+- `POST /api/auth/logout` - ⭐ **NOVO** - Limpa cookies
+- `GET /api/auth/me` - Lê accessToken do cookie (authMiddleware)
+
+**CORS Configurado:**
+```javascript
+// server.js
+app.use(cors({
+  origin: config.frontend.url,
+  credentials: true, // ⚠️ IMPORTANTE: Permite cookies cross-origin
+}));
+
+app.use(cookieParser()); // ⚠️ OBRIGATÓRIO: Parser de cookies
+```
+
+**Frontend Deve:**
+- Configurar Axios com `withCredentials: true`
+- NÃO armazenar tokens em localStorage/sessionStorage
+- Cookies são enviados automaticamente em todas as requisições
+
+### Middleware de Autenticação
+
+```javascript
+// authMiddleware.js - ⚠️ ATUALIZADO para ler cookies
+export const authMiddleware = async (req, res, next) => {
+  try {
+    // Lê accessToken do cookie ao invés do header Authorization
+    const token = req.cookies.accessToken;
+
+    if (!token) {
+      throw new UnauthorizedError('Token não fornecido');
+    }
+
+    // Verificar e decodificar token
+    const decoded = authService.verifyAccessToken(token);
+
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      userType: decoded.userType, // ⚠️ 'student' ou 'teacher'
+    };
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: 'Token inválido ou expirado',
+    });
+  }
+};
+
+// requireTeacher.js
+export const requireTeacher = (req, res, next) => {
+  if (req.user.userType !== 'teacher') {
+    return next(new ForbiddenError('Apenas professores podem acessar este recurso'));
+  }
+  next();
+};
+```
 
 ---
 
-## 📖 Documentação da API (Swagger)
+## Regras de Desenvolvimento
 
-### Acessar Documentação
+### 1. SEMPRE Siga SOLID
 
-Quando o servidor estiver rodando, acesse:
+- ✅ Use Cases recebem dependências via construtor (DIP)
+- ✅ Cada classe tem UMA responsabilidade (SRP)
+- ✅ Use interfaces para abstrações (OCP, LSP, ISP)
+- ❌ NUNCA instancie dependências com `new` dentro de use cases
+- ❌ NUNCA coloque lógica de negócio em controllers ou repositories
 
-- **Interface Swagger UI:** http://localhost:3000/api-docs
-- **JSON OpenAPI:** http://localhost:3000/api-docs.json
+### 2. SEMPRE Use `type`, NUNCA Use `role`
 
-### Como Documentar Novos Endpoints
+- ✅ `RegisterDTO.type` → `'student'` ou `'teacher'`
+- ✅ `req.user.userType` → `'student'` ou `'teacher'`
+- ✅ Entidades separadas: `Student` e `Teacher`
+- ❌ `User` com campo `role`
+- ❌ Tabela `users` com campo `role`
 
-**OBRIGATÓRIO:** Sempre adicione documentação Swagger ao criar novos endpoints!
+### 3. SEMPRE Atualize a Documentação
 
-**Exemplo de documentação em routes:**
+Quando você fizer QUALQUER mudança no projeto, você DEVE atualizar:
+
+- ✅ **CLAUDE.md** (este arquivo) - Se mudar arquitetura, modelo de dados, ou regras
+- ✅ **README.md** - Se mudar setup, comandos, ou endpoints
+- ✅ **Swagger** - Se criar/modificar endpoints (veja seção abaixo)
+
+### 4. Validação e Tratamento de Erros
+
+```javascript
+// DTOs fazem validação
+export class RegisterDTO {
+  validate() {
+    if (!this.email || !this.email.includes('@')) {
+      throw new ValidationError('Email inválido');
+    }
+
+    if (!this.password || this.password.length < 6) {
+      throw new ValidationError('Senha deve ter pelo menos 6 caracteres');
+    }
+
+    if (!['student', 'teacher'].includes(this.type)) {
+      throw new ValidationError('Tipo deve ser student ou teacher');
+    }
+  }
+}
+
+// Use Cases lançam erros específicos
+throw new NotFoundError('Aluno');
+throw new ConflictError('Email já cadastrado');
+throw new UnauthorizedError('Credenciais inválidas');
+throw new ForbiddenError('Apenas professores podem criar turmas');
+
+// errorHandler middleware captura e formata
+export const errorHandler = (err, req, res, next) => {
+  if (err instanceof ValidationError) {
+    return res.status(400).json({
+      success: false,
+      error: err.message,
+    });
+  }
+  // ...
+};
+```
+
+### 5. Nomenclatura
+
+- **Entidades:** PascalCase, singular (`Student`, `Teacher`, `Class`)
+- **Tabelas:** snake_case, plural (`students`, `teachers`, `classes`)
+- **Campos DB:** snake_case (`full_name`, `created_at`, `class_id`)
+- **Campos JS:** camelCase (`fullName`, `createdAt`, `classId`)
+- **Use Cases:** PascalCase + "UseCase" (`RegisterUseCase`, `CreateTaskUseCase`)
+- **Repositories:** PascalCase + "Repository" (`StudentRepository`)
+- **Controllers:** PascalCase + "Controller" (`AuthController`)
+
+---
+
+## Documentação Swagger
+
+### SEMPRE Documente Novos Endpoints!
+
+Quando você criar ou modificar um endpoint, você DEVE adicionar documentação Swagger.
+
+### Estrutura Básica
 
 ```javascript
 /**
  * @swagger
- * /api/classes:
+ * /api/endpoint:
  *   post:
- *     summary: Criar nova turma
- *     description: Cria uma nova turma (apenas professores)
- *     tags: [Classes]
+ *     summary: Breve descrição
+ *     description: Descrição detalhada do que o endpoint faz
+ *     tags: [NomeDaTag]
  *     security:
- *       - bearerAuth: []
+ *       - bearerAuth: []    # Se requer autenticação
  *     requestBody:
  *       required: true
  *       content:
@@ -285,347 +871,302 @@ Quando o servidor estiver rodando, acesse:
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - campo1
  *             properties:
- *               name:
+ *               campo1:
  *                 type: string
- *                 example: Turma AFA
- *               description:
- *                 type: string
- *                 example: Turma preparatória para AFA
+ *                 example: Exemplo do campo
  *     responses:
  *       201:
- *         description: Turma criada com sucesso
+ *         description: Sucesso
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 data:
- *                   $ref: '#/components/schemas/Class'
+ *               $ref: '#/components/schemas/SchemaName'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
- *         description: Não autenticado
- *       403:
- *         description: Apenas professores podem criar turmas
+ *         description: Token não fornecido ou inválido
  */
-router.post('/classes', authMiddleware, requireTeacher, classController.create);
+router.post('/endpoint', authMiddleware, controller.method);
 ```
 
-### Estrutura da Documentação
+### Tags Disponíveis
 
-**Tags disponíveis:**
-- `Auth` - Autenticação
-- `Classes` - Turmas
-- `Tasks` - Tarefas/Temas
-- `Essays` - Redações
-- `Annotations` - Anotações
-- `Comments` - Chat
-- `Notifications` - Notificações
+Use estas tags para organizar endpoints:
+- `Auth` - Autenticação e autorização
+- `Classes` - Gerenciamento de turmas
+- `Tasks` - Gerenciamento de tarefas/temas
+- `Essays` - Upload e gerenciamento de redações
+- `Annotations` - Anotações nas redações
+- `Comments` - Chat entre professora e aluno
+- `Notifications` - Notificações do sistema
 
-**Schemas principais:**
-- `Student` - Dados do aluno
-- `Teacher` - Dados do professor
-- `AuthResponse` - Resposta de autenticação
-- `Error` - Padrão de erro
+### Schemas Reutilizáveis
 
-**Security Schemes:**
-- `bearerAuth` - Token JWT no header `Authorization: Bearer <token>`
+Definidos em `src/config/swagger.js`:
+- `#/components/schemas/Student` - Dados públicos do aluno
+- `#/components/schemas/Teacher` - Dados públicos do professor
+- `#/components/schemas/AuthResponse` - Resposta de autenticação
+- `#/components/schemas/Error` - Padrão de erro
 
-### Regras para Documentação
+### Exemplo Completo
 
-1. **Sempre documente** todos os endpoints
-2. **Inclua exemplos** em todos os campos
-3. **Especifique tipos** e validações (required, minLength, etc)
-4. **Documente erros** possíveis (400, 401, 403, 404, 500)
-5. **Use schemas** reutilizáveis (defina em `src/config/swagger.js`)
-6. **Adicione descrições** claras do que o endpoint faz
+```javascript
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Registrar novo usuário
+ *     description: Cria um novo aluno ou professor no sistema
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *               - type
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: joao@exemplo.com
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: senha123
+ *               fullName:
+ *                 type: string
+ *                 minLength: 3
+ *                 example: João Silva
+ *               type:
+ *                 type: string
+ *                 enum: [student, teacher]
+ *                 example: student
+ *               enrollmentNumber:
+ *                 type: string
+ *                 description: Matrícula do aluno (apenas para type=student)
+ *                 example: "2024001"
+ *               specialization:
+ *                 type: string
+ *                 description: Especialização do professor (apenas para type=teacher)
+ *                 example: Redação ENEM
+ *     responses:
+ *       201:
+ *         description: Usuário registrado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Dados inválidos
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       409:
+ *         description: Email já cadastrado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.post('/register', validate(registerSchema), authController.register);
+```
 
-### Como Testar via Swagger
+### Checklist para Documentação
 
-1. Acesse http://localhost:3000/api-docs
-2. Expanda o endpoint desejado
-3. Clique em "Try it out"
-4. Preencha os parâmetros
-5. Para endpoints autenticados:
-   - Clique no botão "Authorize" (cadeado)
-   - Cole o access token
-   - Clique em "Authorize"
-6. Execute a requisição
+Ao criar um novo endpoint:
+- [ ] Adicionou comentário `@swagger` na rota
+- [ ] Especificou a tag correta
+- [ ] Definiu `security: bearerAuth` se for endpoint autenticado
+- [ ] Documentou todos os campos do requestBody
+- [ ] Incluiu exemplos em todos os campos
+- [ ] Documentou TODAS as respostas possíveis (200, 201, 400, 401, 403, 404, 500)
+- [ ] Usou schemas reutilizáveis quando possível
+- [ ] Testou no Swagger UI (http://localhost:3000/api-docs)
+
+### Como Adicionar Novo Schema
+
+Edite `src/config/swagger.js` e adicione em `components.schemas`:
+
+```javascript
+Class: {
+  type: 'object',
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+    },
+    name: {
+      type: 'string',
+      example: 'Turma AFA',
+    },
+    description: {
+      type: 'string',
+      example: 'Turma preparatória para concurso AFA',
+    },
+    teacherId: {
+      type: 'string',
+      format: 'uuid',
+    },
+    createdAt: {
+      type: 'string',
+      format: 'date-time',
+    },
+  },
+},
+```
 
 ---
 
-## 🐳 Docker
+## Variáveis de Ambiente
 
-### Como Rodar
+### Backend (.env)
+
+```env
+NODE_ENV=development
+PORT=3000
+
+# Database
+DATABASE_HOST=localhost
+DATABASE_PORT=5432
+DATABASE_NAME=redacao_corretor
+DATABASE_USER=postgres
+DATABASE_PASSWORD=postgres
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/redacao_corretor
+
+# JWT
+JWT_SECRET=seu-secret-super-secreto-mude-em-producao
+JWT_REFRESH_SECRET=seu-refresh-secret-super-secreto-mude-em-producao
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+# CORS
+FRONTEND_URL=http://localhost:5173
+
+# Upload
+UPLOAD_STORAGE_TYPE=local  # ou 's3'
+UPLOAD_DIR=uploads
+UPLOAD_MAX_SIZE=10485760  # 10MB
+
+# AWS S3 (se UPLOAD_STORAGE_TYPE=s3)
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_REGION=us-east-1
+AWS_S3_BUCKET=redacao-corretor-files
+```
+
+---
+
+## Comandos Úteis
+
+### Docker
 
 ```bash
-# Subir todos os serviços
-docker-compose up -d
+# Subir serviços
+docker-compose up
 
-# Ver logs
-docker-compose logs -f backend
+# Subir com rebuild (após mudanças)
+docker-compose up --build --force-recreate
 
-# Parar
+# Parar serviços
 docker-compose down
 
-# Rebuild (após mudanças)
-docker-compose up --build --force-recreate
+# Resetar banco de dados (⚠️ deleta todos os dados!)
+docker-compose down -v
+docker-compose up --build
 ```
 
-### Serviços
-
-- **postgres** - PostgreSQL 15 (porta 5432)
-- **backend** - API Node.js (porta 3000)
-
----
-
-## ✅ Status Atual do Projeto
-
-### Implementado (Backend)
-
-- ✅ Estrutura completa de pastas (Clean Architecture)
-- ✅ Docker + Docker Compose
-- ✅ PostgreSQL com 7 migrations
-- ✅ Entidades de domínio (Student, Teacher, Class, Task, Essay, etc)
-- ✅ Repositories (StudentRepository, TeacherRepository)
-- ✅ AuthService (JWT + bcrypt)
-- ✅ Use Cases de autenticação (Register, Login, Refresh)
-- ✅ Controllers e rotas de autenticação
-- ✅ Middleware (auth, role, error handling, validation)
-- ✅ Sistema de erros customizados
-- ✅ Logger (Winston)
-- ✅ Validação com Joi
-
-### Próximas Implementações
-
-**Fase 2 - Turmas e Tarefas:**
-- ❌ ClassRepository
-- ❌ TaskRepository
-- ❌ Use Cases de turmas (CRUD)
-- ❌ Use Cases de tarefas (CRUD)
-- ❌ Controllers e rotas
-
-**Fase 3 - Upload e Redações:**
-- ❌ FileStorageService (Multer + S3 ou local)
-- ❌ EssayRepository
-- ❌ Use Cases de redações
-- ❌ Upload middleware
-- ❌ Controllers e rotas
-
-**Fase 4 - Anotações (Core Feature):**
-- ❌ AnnotationRepository
-- ❌ Use Cases de anotações
-- ❌ Controllers e rotas
-- ❌ Frontend: Integração Fabric.js
-
-**Fase 5 - Notificações:**
-- ❌ NotificationService (Socket.io)
-- ❌ NotificationRepository
-- ❌ Use Cases de notificações
-- ❌ WebSocket server
-
-**Fase 6 - Chat:**
-- ❌ CommentRepository
-- ❌ Use Cases de comentários
-- ❌ Real-time chat com Socket.io
-
-**Fase 7 - Frontend:**
-- ❌ Estrutura React
-- ❌ AuthContext
-- ❌ Páginas de login/registro
-- ❌ Dashboard aluno/professor
-- ❌ Componente de anotações (Fabric.js)
-
----
-
-## 📝 REGRAS DE DESENVOLVIMENTO
-
-### 🚨 SEMPRE FAZER (OBRIGATÓRIO)
-
-1. **Seguir Princípios SOLID**
-   - Toda nova classe/função deve seguir SRP
-   - Use Dependency Injection
-   - Dependa de interfaces, não implementações
-
-2. **Atualizar Documentação**
-   - Após QUALQUER mudança significativa, atualize:
-     - ✅ `CLAUDE.md` (este arquivo)
-     - ✅ `README.md` (instruções de uso)
-     - ✅ Swagger/OpenAPI (quando implementado)
-   - Adicione comentários JSDoc nas funções públicas
-
-3. **Estrutura de Código**
-   - **Use Case** para lógica de negócio
-   - **Repository** para acesso a dados
-   - **Controller** apenas delega para Use Cases
-   - **DTO** para validação de entrada
-   - **Entity** para regras de domínio
-
-4. **Tratamento de Erros**
-   - Use classes de erro customizadas (`AppError`, `ValidationError`, etc)
-   - Sempre propague erros para o middleware global
-   - Não use `console.log` - use `logger`
-
-5. **Validação**
-   - Use Joi para validação de entrada
-   - DTOs devem validar dados
-   - Entidades devem validar regras de negócio
-
-6. **Testes**
-   - Escreva testes para Use Cases
-   - Testes de integração para Controllers
-   - Testes E2E para fluxos completos
-
-### 🚫 NUNCA FAZER
-
-1. **Não quebrar SOLID**
-   - Não coloque lógica de negócio em Controllers
-   - Não acesse banco direto de Controllers
-   - Não instancie dependências dentro de classes
-
-2. **Não usar `role` - use `type`**
-   - Temos entidades separadas: Student e Teacher
-   - Não existe mais campo `role`
-   - Use `userType` no JWT
-
-3. **Não misturar camadas**
-   - Domain não conhece Infrastructure
-   - Application não conhece HTTP
-   - Infrastructure implementa interfaces do Domain
-
-4. **Não commitar**
-   - `.env` com secrets reais
-   - `node_modules/`
-   - Logs
-   - Uploads
-
----
-
-## 🔄 Fluxo de Implementação de Nova Feature
-
-### Exemplo: Implementar CRUD de Turmas
-
-1. **Domain Layer**
-   ```javascript
-   // 1. Entidade já existe: src/domain/entities/Class.js ✅
-
-   // 2. Criar interface
-   // src/domain/repositories/IClassRepository.js
-   export class IClassRepository {
-     async create(classData) { throw new Error('Not implemented'); }
-     async findById(id) { throw new Error('Not implemented'); }
-     // ... outros métodos
-   }
-   ```
-
-2. **Infrastructure Layer**
-   ```javascript
-   // 3. Implementar repository
-   // src/infrastructure/database/repositories/ClassRepository.js
-   export class ClassRepository extends IClassRepository {
-     async create(classData) {
-       // Implementação com PostgreSQL
-     }
-   }
-   ```
-
-3. **Application Layer**
-   ```javascript
-   // 4. Criar DTO
-   // src/application/dtos/CreateClassDTO.js
-   export class CreateClassDTO {
-     constructor({ name, description, teacherId }) {
-       this.validate();
-     }
-   }
-
-   // 5. Criar Use Case
-   // src/application/use-cases/classes/CreateClassUseCase.js
-   export class CreateClassUseCase {
-     constructor(classRepository) { // DI!
-       this.classRepository = classRepository;
-     }
-
-     async execute(createClassDTO) {
-       // Lógica de negócio
-     }
-   }
-   ```
-
-4. **HTTP Layer**
-   ```javascript
-   // 6. Criar validator
-   // src/infrastructure/http/validators/classValidators.js
-
-   // 7. Criar controller
-   // src/infrastructure/http/controllers/ClassController.js
-
-   // 8. Criar rotas
-   // src/infrastructure/http/routes/classes.routes.js
-
-   // 9. Registrar no index
-   // src/infrastructure/http/routes/index.js
-   router.use('/classes', classRoutes);
-   ```
-
-5. **Documentação**
-   ```markdown
-   // 10. Atualizar CLAUDE.md (este arquivo)
-   // 11. Atualizar README.md
-   // 12. Adicionar no Swagger
-   ```
-
----
-
-## 🧪 Testes
-
-### Como Testar
+### Migrations
 
 ```bash
-# Unit tests
-npm test
+# Rodar migrations
+npm run migrate
 
-# Watch mode
-npm run test:watch
+# Rollback última migration
+npm run migrate:rollback
 
-# Coverage
-npm run test:coverage
+# Resetar banco (rollback all + migrate)
+npm run migrate:reset
 ```
 
-### Estrutura de Testes
+### Desenvolvimento
 
-```
-tests/
-├── unit/              # Testes unitários (Use Cases, Entities)
-├── integration/       # Testes de integração (Repositories, Controllers)
-└── e2e/               # Testes end-to-end (fluxos completos)
+```bash
+# Instalar dependências
+npm install
+
+# Modo desenvolvimento (hot reload)
+npm run dev
+
+# Modo produção
+npm start
 ```
 
 ---
 
-## 📚 Referências Úteis
+## Próximas Fases de Desenvolvimento
 
-- [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)
-- [SOLID Principles](https://www.digitalocean.com/community/conceptual_articles/s-o-l-i-d-the-first-five-principles-of-object-oriented-design)
-- [Fabric.js Documentation](http://fabricjs.com/docs/)
-- [Express Best Practices](https://expressjs.com/en/advanced/best-practice-security.html)
+### ✅ Fase 1: Fundação (COMPLETO)
+- [x] Estrutura de pastas Clean Architecture
+- [x] Configuração PostgreSQL + Docker
+- [x] Migrations (teachers, classes, students com class_id)
+- [x] Autenticação completa (register, login, refresh)
+- [x] Middleware (auth, requireTeacher, errorHandler, validate)
+- [x] Documentação Swagger completa para Auth
+
+### 🚧 Fase 2: Turmas e Tarefas (EM ANDAMENTO)
+- [ ] CRUD de turmas (apenas professores)
+- [ ] Listar alunos de uma turma
+- [ ] CRUD de tarefas (por turma)
+- [ ] Listar tarefas da turma do aluno
+
+### 📋 Fase 3: Upload e Visualização
+- [ ] Configurar multer + FileStorageService
+- [ ] Upload de redações (JPEG, PNG, PDF)
+- [ ] Visualização de redações
+- [ ] Status tracking (pending/correcting/corrected)
+
+### 🎨 Fase 4: Anotações (Core Feature)
+- [ ] Integrar Fabric.js no frontend
+- [ ] Componente AnnotatorCanvas com toolbar
+- [ ] Suporte a stylus pressure
+- [ ] Serialização → JSONB
+- [ ] Auto-save a cada 5s
+
+### 🔔 Fase 5: Notificações e Chat
+- [ ] Configurar Socket.io
+- [ ] NotificationService
+- [ ] Sistema de comentários
+
+### 📊 Fase 6: Dashboard e Relatórios
+- [ ] Dashboard professor
+- [ ] Dashboard aluno
+- [ ] Gráficos com Recharts
 
 ---
 
-## 🤝 Contribuindo
+## Lembre-se
 
-Ao fazer mudanças:
-1. Siga os princípios SOLID
-2. Mantenha a estrutura de Clean Architecture
-3. Adicione testes
-4. Atualize documentação (CLAUDE.md, README.md, Swagger)
-5. Use commits semânticos
+1. **SEMPRE siga SOLID** em todas as implementações
+2. **NÃO use `role`**, use `type` com entidades separadas (Student/Teacher)
+3. **Cada aluno pertence a UMA turma** (students.class_id, não many-to-many)
+4. **Cada tarefa é de uma turma** (todos os alunos da turma devem enviar)
+5. **SEMPRE atualize documentação** (CLAUDE.md, README.md, Swagger)
+6. **Use Dependency Injection** em todos os use cases
+7. **Valide com DTOs**, trate erros com classes específicas
+8. **Teste no Swagger** após criar endpoints
 
 ---
 
 **Última atualização:** 2025-12-16
-**Versão do Backend:** 1.0.0 (Autenticação + Swagger implementados)
-**Status:** ✅ Backend Phase 1 completo - Pronto para Phase 2 (Turmas e Tarefas)

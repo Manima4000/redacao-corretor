@@ -179,6 +179,33 @@ router.post(
 
 /**
  * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout
+ *     description: Remove os cookies de autenticação (access token e refresh token)
+ *     tags: [Auth]
+ *     responses:
+ *       200:
+ *         description: Logout realizado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Logout realizado com sucesso
+ */
+router.post(
+  '/logout',
+  authController.logout
+);
+
+/**
+ * @swagger
  * /api/auth/me:
  *   get:
  *     summary: Obter dados do usuário autenticado

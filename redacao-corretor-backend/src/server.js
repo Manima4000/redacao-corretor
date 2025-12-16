@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import config from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -24,6 +25,9 @@ app.use(cors({
   origin: config.frontend.url,
   credentials: true,
 }));
+
+// Cookie parsing
+app.use(cookieParser());
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

@@ -613,19 +613,136 @@ generateAccessToken(user) {
 }
 ```
 
+### ⚠️ IMPORTANTE: Tokens em Cookies HttpOnly (Atualizado em 2025-12-16)
+
+**Mudança de Segurança:** Os tokens JWT agora são enviados via **cookies httpOnly** ao invés do body da resposta.
+
+**Motivos:**
+- ✅ **Mais seguro:** Cookies httpOnly não podem ser acessados por JavaScript (previne XSS)
+- ✅ **Enviados automaticamente:** Browser envia cookies em todas as requisições
+- ✅ **Flags de segurança:** `secure`, `sameSite=strict` para proteção adicional
+
+**Como Funciona:**
+
+```javascript
+// AuthController.js - Helper para definir cookies
+_setTokenCookies(res, accessToken, refreshToken) {
+  // Access token (15 minutos)
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,                             // Não acessível via JavaScript
+    secure: process.env.NODE_ENV === 'production', // HTTPS apenas em produção
+    sameSite: 'strict',                         // Previne CSRF
+    maxAge: 15 * 60 * 1000,                    // 15 minutos em ms
+  });
+
+  // Refresh token (7 dias)
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,           // 7 dias em ms
+  });
+}
+
+// Login/Register - Define cookies e retorna APENAS dados do usuário
+async login(req, res, next) {
+  try {
+    const result = await this.loginUseCase.execute(loginDTO);
+
+    // Define tokens em cookies httpOnly
+    this._setTokenCookies(res, result.accessToken, result.refreshToken);
+
+    // Retorna apenas dados do usuário (SEM tokens)
+    res.status(200).json({
+      success: true,
+      message: 'Login realizado com sucesso',
+      data: {
+        user: result.user, // ⚠️ Apenas user, sem tokens!
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Refresh - Lê refreshToken do cookie
+async refresh(req, res, next) {
+  try {
+    const refreshToken = req.cookies.refreshToken; // ⚠️ Lê do cookie!
+
+    const result = await this.refreshTokenUseCase.execute(refreshToken);
+
+    // Define novo accessToken no cookie
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.status(200).json({
+      success: true,
+      data: { user: result.user },
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Logout - Limpa cookies
+async logout(req, res, next) {
+  try {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
+    res.status(200).json({
+      success: true,
+      message: 'Logout realizado com sucesso',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+```
+
+**Endpoints Atualizados:**
+- `POST /api/auth/register` - Define cookies, retorna `{ user }`
+- `POST /api/auth/login` - Define cookies, retorna `{ user }`
+- `POST /api/auth/refresh` - Lê refreshToken do cookie, define novo accessToken
+- `POST /api/auth/logout` - ⭐ **NOVO** - Limpa cookies
+- `GET /api/auth/me` - Lê accessToken do cookie (authMiddleware)
+
+**CORS Configurado:**
+```javascript
+// server.js
+app.use(cors({
+  origin: config.frontend.url,
+  credentials: true, // ⚠️ IMPORTANTE: Permite cookies cross-origin
+}));
+
+app.use(cookieParser()); // ⚠️ OBRIGATÓRIO: Parser de cookies
+```
+
+**Frontend Deve:**
+- Configurar Axios com `withCredentials: true`
+- NÃO armazenar tokens em localStorage/sessionStorage
+- Cookies são enviados automaticamente em todas as requisições
+
 ### Middleware de Autenticação
 
 ```javascript
-// authMiddleware.js
+// authMiddleware.js - ⚠️ ATUALIZADO para ler cookies
 export const authMiddleware = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    // Lê accessToken do cookie ao invés do header Authorization
+    const token = req.cookies.accessToken;
 
     if (!token) {
       throw new UnauthorizedError('Token não fornecido');
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verificar e decodificar token
+    const decoded = authService.verifyAccessToken(token);
 
     req.user = {
       id: decoded.id,
@@ -635,7 +752,10 @@ export const authMiddleware = async (req, res, next) => {
 
     next();
   } catch (error) {
-    next(new UnauthorizedError('Token inválido'));
+    return res.status(401).json({
+      success: false,
+      error: 'Token inválido ou expirado',
+    });
   }
 };
 

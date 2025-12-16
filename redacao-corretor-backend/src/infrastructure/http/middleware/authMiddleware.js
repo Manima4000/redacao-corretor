@@ -5,20 +5,16 @@ const authService = new AuthService();
 
 /**
  * Middleware para verificar autenticação JWT
+ * Lê o token do cookie httpOnly
  * Adiciona req.user com os dados do usuário autenticado
  */
 export const authMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      throw new AuthenticationError('Token não fornecido');
-    }
-
-    const token = authService.extractTokenFromHeader(authHeader);
+    // Lê accessToken do cookie ao invés do header Authorization
+    const token = req.cookies.accessToken;
 
     if (!token) {
-      throw new AuthenticationError('Formato de token inválido');
+      throw new AuthenticationError('Token não fornecido');
     }
 
     // Verificar e decodificar token

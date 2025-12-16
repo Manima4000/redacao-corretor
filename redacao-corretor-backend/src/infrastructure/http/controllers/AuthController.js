@@ -40,7 +40,29 @@ export class AuthController {
     this.register = this.register.bind(this);
     this.login = this.login.bind(this);
     this.refresh = this.refresh.bind(this);
+    this.logout = this.logout.bind(this);
     this.me = this.me.bind(this);
+  }
+
+  /**
+   * Helper privado para definir cookies de autenticação
+   */
+  _setTokenCookies(res, accessToken, refreshToken) {
+    // Access token (15 minutos)
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutos em ms
+    });
+
+    // Refresh token (7 dias)
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias em ms
+    });
   }
 
   /**
@@ -52,10 +74,16 @@ export class AuthController {
       const registerDTO = new RegisterDTO(req.body);
       const result = await this.registerUseCase.execute(registerDTO);
 
+      // Define tokens em cookies httpOnly
+      this._setTokenCookies(res, result.accessToken, result.refreshToken);
+
+      // Retorna apenas dados do usuário (sem tokens)
       res.status(201).json({
         success: true,
         message: 'Usuário registrado com sucesso',
-        data: result,
+        data: {
+          user: result.user,
+        },
       });
     } catch (error) {
       next(error);
@@ -71,10 +99,16 @@ export class AuthController {
       const loginDTO = new LoginDTO(req.body);
       const result = await this.loginUseCase.execute(loginDTO);
 
+      // Define tokens em cookies httpOnly
+      this._setTokenCookies(res, result.accessToken, result.refreshToken);
+
+      // Retorna apenas dados do usuário (sem tokens)
       res.status(200).json({
         success: true,
         message: 'Login realizado com sucesso',
-        data: result,
+        data: {
+          user: result.user,
+        },
       });
     } catch (error) {
       next(error);
@@ -87,7 +121,8 @@ export class AuthController {
    */
   async refresh(req, res, next) {
     try {
-      const { refreshToken } = req.body;
+      // Lê refreshToken do cookie ao invés do body
+      const refreshToken = req.cookies.refreshToken;
 
       if (!refreshToken) {
         return res.status(400).json({
@@ -98,10 +133,49 @@ export class AuthController {
 
       const result = await this.refreshTokenUseCase.execute(refreshToken);
 
+      // Define novo accessToken no cookie
+      res.cookie('accessToken', result.accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 15 * 60 * 1000, // 15 minutos
+      });
+
+      // Retorna apenas dados do usuário
       res.status(200).json({
         success: true,
         message: 'Token renovado com sucesso',
-        data: result,
+        data: {
+          user: result.user,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /api/auth/logout
+   * Faz logout limpando cookies de autenticação
+   */
+  async logout(req, res, next) {
+    try {
+      // Limpa ambos os cookies
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Logout realizado com sucesso',
       });
     } catch (error) {
       next(error);
