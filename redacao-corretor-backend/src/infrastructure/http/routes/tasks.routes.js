@@ -183,6 +183,102 @@ router.get('/:id', authMiddleware, taskController.getById);
 
 /**
  * @swagger
+ * /api/tasks/{id}/students:
+ *   get:
+ *     summary: Buscar alunos de uma tarefa
+ *     description: Retorna lista de alunos da(s) turma(s) da tarefa com status de entrega
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da tarefa
+ *     responses:
+ *       200:
+ *         description: Lista de alunos com status de entrega
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     task:
+ *                       $ref: '#/components/schemas/Task'
+ *                     students:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                             format: uuid
+ *                           email:
+ *                             type: string
+ *                           fullName:
+ *                             type: string
+ *                           enrollmentNumber:
+ *                             type: string
+ *                           classId:
+ *                             type: string
+ *                             format: uuid
+ *                           hasSubmitted:
+ *                             type: boolean
+ *                           essay:
+ *                             type: object
+ *                             nullable: true
+ *                             properties:
+ *                               id:
+ *                                 type: string
+ *                                 format: uuid
+ *                               status:
+ *                                 type: string
+ *                                 enum: [pending, correcting, corrected]
+ *                               submittedAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               correctedAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                                 nullable: true
+ *                     stats:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         submitted:
+ *                           type: integer
+ *                         notSubmitted:
+ *                           type: integer
+ *                         submissionRate:
+ *                           type: integer
+ *                           description: Porcentagem de entregas (0-100)
+ *       401:
+ *         description: Token não fornecido ou inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Tarefa não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/:id/students', authMiddleware, taskController.getStudents);
+
+/**
+ * @swagger
  * /api/tasks/{id}:
  *   put:
  *     summary: Atualizar tarefa

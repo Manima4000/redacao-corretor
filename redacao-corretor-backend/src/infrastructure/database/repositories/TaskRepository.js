@@ -263,6 +263,53 @@ export class TaskRepository extends ITaskRepository {
   }
 
   /**
+   * Busca alunos de uma tarefa com status de entrega
+   * @param {string} taskId - ID da tarefa
+   * @returns {Promise<Array>} Lista de alunos com status de entrega
+   */
+  async findStudentsByTaskId(taskId) {
+    const sql = `
+      SELECT
+        s.id,
+        s.email,
+        s.full_name,
+        s.enrollment_number,
+        s.class_id,
+        CASE
+          WHEN e.id IS NOT NULL THEN true
+          ELSE false
+        END as has_submitted,
+        e.id as essay_id,
+        e.status as essay_status,
+        e.submitted_at,
+        e.corrected_at
+      FROM students s
+      INNER JOIN task_classes tc ON s.class_id = tc.class_id
+      LEFT JOIN essays e ON e.student_id = s.id AND e.task_id = $1
+      WHERE tc.task_id = $1
+      ORDER BY s.full_name ASC
+    `;
+
+    const result = await query(sql, [taskId]);
+    return result.rows.map((row) => ({
+      id: row.id,
+      email: row.email,
+      fullName: row.full_name,
+      enrollmentNumber: row.enrollment_number,
+      classId: row.class_id,
+      hasSubmitted: row.has_submitted,
+      essay: row.essay_id
+        ? {
+            id: row.essay_id,
+            status: row.essay_status,
+            submittedAt: row.submitted_at,
+            correctedAt: row.corrected_at,
+          }
+        : null,
+    }));
+  }
+
+  /**
    * Mapeia row do banco para entidade Task
    * @private
    */

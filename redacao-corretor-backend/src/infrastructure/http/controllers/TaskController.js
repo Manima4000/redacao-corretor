@@ -3,6 +3,7 @@ import { GetTasksUseCase } from '../../../application/use-cases/tasks/GetTasksUs
 import { GetTaskByIdUseCase } from '../../../application/use-cases/tasks/GetTaskByIdUseCase.js';
 import { UpdateTaskUseCase } from '../../../application/use-cases/tasks/UpdateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../../application/use-cases/tasks/DeleteTaskUseCase.js';
+import { GetTaskStudentsUseCase } from '../../../application/use-cases/tasks/GetTaskStudentsUseCase.js';
 import { CreateTaskDTO } from '../../../application/dtos/CreateTaskDTO.js';
 import { UpdateTaskDTO } from '../../../application/dtos/UpdateTaskDTO.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
@@ -39,12 +40,17 @@ export class TaskController {
 
     this.deleteTaskUseCase = new DeleteTaskUseCase(this.taskRepository);
 
+    this.getTaskStudentsUseCase = new GetTaskStudentsUseCase(
+      this.taskRepository
+    );
+
     // Bind dos métodos (para manter contexto quando usado como callback)
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
     this.getById = this.getById.bind(this);
     this.update = this.update.bind(this);
     this.delete = this.delete.bind(this);
+    this.getStudents = this.getStudents.bind(this);
   }
 
   /**
@@ -161,6 +167,25 @@ export class TaskController {
       res.status(200).json({
         success: true,
         message: 'Tarefa deletada com sucesso',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/tasks/:id/students
+   * Busca alunos de uma tarefa com status de entrega
+   */
+  async getStudents(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const result = await this.getTaskStudentsUseCase.execute(id);
+
+      res.status(200).json({
+        success: true,
+        data: result,
       });
     } catch (error) {
       next(error);

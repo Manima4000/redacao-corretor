@@ -44,9 +44,18 @@ export const taskService = {
 
   /**
    * Remove tarefa
-   * @param {string} id 
+   * @param {string} id
    */
   async deleteTask(id) {
     await api.delete(`/tasks/${id}`);
+  },
+
+  /**
+   * Busca alunos de uma tarefa com status de entrega
+   * @param {string} taskId
+   */
+  async getTaskStudents(taskId) {
+    const response = await api.get(`/tasks/${taskId}/students`);
+    return response.data.data;
   },
 };
