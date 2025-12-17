@@ -127,13 +127,6 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
 
   return (
     <div className="space-y-4">
-      {/* Instruções */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Instruções:</strong> Envie sua redação em formato de imagem (JPEG, PNG) ou PDF. Tamanho máximo: 10MB.
-        </p>
-      </div>
-
       {/* Input de arquivo (oculto) */}
       <input
         ref={fileInputRef}
@@ -143,23 +136,24 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
         className="hidden"
       />
 
-      {/* Arquivo selecionado */}
-      {selectedFile && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">
-                {selectedFile.type.startsWith('image/') ? <i className="bi bi-file-image text-2xl" /> : <i className="bi bi-file-pdf text-2xl" />}
-              </span>
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {selectedFile.name}
-                </p>
-                <p className="text-xs text-gray-500">
-                  {formatFileSize(selectedFile.size)}
-                </p>
-              </div>
+      {/* Área de Seleção / Preview */}
+      {!selectedFile ? (
+        <div 
+            onClick={handleButtonClick}
+            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-colors cursor-pointer group"
+        >
+            <div className="text-4xl text-gray-300 group-hover:text-blue-500 mb-2">
+                <i className="bi bi-cloud-arrow-up"></i>
             </div>
+            <p className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
+                Clique para selecionar o arquivo
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+                PDF, JPG ou PNG (máx. 10MB)
+            </p>
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative">
             <button
               onClick={() => {
                 setSelectedFile(null);
@@ -168,50 +162,56 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
                   fileInputRef.current.value = '';
                 }
               }}
-              className="text-red-600 hover:text-red-800 text-sm font-medium"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 p-1"
+              title="Remover arquivo"
             >
-              Remover
+              <i className="bi bi-x-lg"></i>
             </button>
+
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-lg ${selectedFile.type.startsWith('image/') ? 'bg-purple-100 text-purple-600' : 'bg-red-100 text-red-600'}`}>
+                {selectedFile.type.startsWith('image/') ? <i className="bi bi-file-image text-2xl" /> : <i className="bi bi-file-pdf text-2xl" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {selectedFile.name}
+              </p>
+              <p className="text-xs text-gray-500">
+                {formatFileSize(selectedFile.size)}
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Botões */}
-      <div className="flex gap-3">
-        {!selectedFile ? (
+      {/* Botão de Envio */}
+      {selectedFile && (
           <Button
             variant="primary"
             size="lg"
-            className="flex-1"
-            onClick={handleButtonClick}
-          >
-            <i className="bi bi-paperclip" /> Selecionar arquivo
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="lg"
-            className="flex-1"
+            className="w-full justify-center py-3"
             onClick={handleUpload}
             isLoading={isUploading}
             disabled={isUploading}
           >
-            {isUploading ? 'Enviando...' : <><i className="bi bi-cloud-upload-fill" /> Enviar redação</>}
+            {isUploading ? 'Enviando...' : <><i className="bi bi-cloud-upload-fill mr-2" /> Enviar Redação</>}
           </Button>
-        )}
-      </div>
+      )}
 
       {/* Erro */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
+          <i className="bi bi-exclamation-circle-fill text-red-500 mt-0.5"></i>
           <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
 
-      {/* Formatos aceitos */}
-      <p className="text-xs text-gray-500 text-center">
-        Formatos aceitos: .jpg, .jpeg, .png, .pdf (máximo 10MB)
-      </p>
+      {/* Instruções Rodapé */}
+      <div className="text-center pt-2 border-t border-gray-100">
+          <p className="text-xs text-gray-400">
+            Formatos aceitos: .jpg, .jpeg, .png, .pdf
+          </p>
+      </div>
     </div>
   );
 };

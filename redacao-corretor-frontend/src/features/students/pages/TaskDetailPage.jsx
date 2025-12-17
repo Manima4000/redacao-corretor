@@ -188,130 +188,122 @@ export const TaskDetailPage = () => {
         </div>
       </div>
 
-      {/* Descrição da tarefa */}
-      <Card>
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              <i className="bi bi-clipboard-data-fill"></i> Tema da Redação
-            </h2>
-            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {task.description}
-            </p>
+      {/* Content Stack */}
+      <div className="space-y-6">
+        {/* Descrição da tarefa (Tema) */}
+        <Card className="p-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i className="bi bi-clipboard-data-fill text-blue-600"></i> Tema da Redação
+              </h2>
+              <div className="prose max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {task.description}
+              </div>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      {/* Seção de upload */}
-      <Card>
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            <i className="bi bi-cloud-upload-fill"></i> Envio da Redação
-          </h2>
+        {/* Seção de upload */}
+        <Card className="p-6">
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <i className="bi bi-cloud-upload-fill text-blue-600"></i> Envio da Redação
+            </h2>
 
-          {hasSubmitted ? (
-            // Já enviou
-            <div className="space-y-4">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl"><i className="bi bi-check-lg"></i></span>
-                  <div className="flex-1">
-                    <p className="text-green-800 font-medium">
-                      Redação enviada com sucesso!
-                    </p>
-                    <p className="text-sm text-green-600 mt-1">
-                      Enviada em{' '}
-                      {new Date(essay.submittedAt).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
+            {hasSubmitted ? (
+              // Já enviou
+              <div className="space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="text-2xl text-green-600"><i className="bi bi-check-lg"></i></span>
+                    <div className="flex-1">
+                      <p className="text-green-800 font-medium">
+                        Redação enviada!
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        {new Date(essay.submittedAt).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Status da correção */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Status da correção:
-                  </p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {essay.status === 'pending' && 'Aguardando correção'}
-                    {essay.status === 'correcting' && 'Em correção'}
-                    {essay.status === 'corrected' && 'Corrigida'}
-                  </p>
+                {/* Status da correção */}
+                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Status:</p>
+                  <div className="flex items-center gap-2">
+                      <span
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium inline-flex items-center gap-2 w-full justify-center ${
+                          essay.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-700'
+                          : essay.status === 'correcting'
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-green-100 text-green-700'
+                      }`}
+                      >
+                      {essay.status === 'pending' && <><i className="bi bi-hourglass-split"></i> Pendente</>}
+                      {essay.status === 'correcting' && <><i className="bi bi-pencil-fill"></i> Corrigindo</>}
+                      {essay.status === 'corrected' && <><i className="bi bi-check-lg"></i> Corrigida</>}
+                      </span>
+                  </div>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    essay.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-700'
-                      : essay.status === 'correcting'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-green-100 text-green-700'
-                  }`}
-                >
-                  {essay.status === 'pending' && <span><i className="bi bi-hourglass-split"></i> Pendente</span>}
-                  {essay.status === 'correcting' && <span><i className="bi bi-pencil-fill"></i> Corrigindo</span>}
-                  {essay.status === 'corrected' && <span><i className="bi bi-check-lg"></i> Corrigida</span>}
-                </span>
-              </div>
 
-              {/* Botões de ação */}
-              <div className="flex gap-3">
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="flex-1"
-                  onClick={() => window.open(essay.publicUrl, '_blank')}
-                >
-                  <i className="bi bi-eye-fill"></i> Visualizar redação
-                </Button>
-                {essay.status === 'pending' && isTaskActive && (
+                {/* Botões de ação */}
+                <div className="flex gap-3 pt-2">
                   <Button
-                    variant="danger"
-                    size="md"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
+                    variant="primary"
+                    className="flex-1 justify-center"
+                    onClick={() => window.open(essay.publicUrl, '_blank')}
                   >
-                    {isDeleting ? <span><i className="bi bi-hourglass-split"></i> Deletando...</span> : <span><i className="bi bi-trash-fill"></i> Deletar e reenviar</span>}
+                    <i className="bi bi-eye-fill mr-2"></i> Visualizar
                   </Button>
+                  
+                  {essay.status === 'pending' && isTaskActive && (
+                    <Button
+                      variant="outline"
+                      className="flex-1 justify-center text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                      onClick={handleDelete}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? <span><i className="bi bi-hourglass-split"></i> Deletando...</span> : <span><i className="bi bi-trash-fill mr-2"></i> Deletar e reenviar</span>}
+                    </Button>
+                  )}
+                </div>
+
+                {essay.status === 'pending' && (
+                  <p className="text-xs text-gray-400 text-center">
+                    Você pode reenviar enquanto o prazo estiver aberto.
+                  </p>
                 )}
               </div>
-
-              {essay.status === 'pending' && (
-                <p className="text-xs text-gray-500 text-center">
-                  Você pode deletar e reenviar sua redação enquanto o prazo não encerrar.
-                </p>
-              )}
-            </div>
-          ) : !isTaskActive ? (
-            // Prazo encerrado
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl"><i className="bi bi-alarm-fill"></i></span>
-                <div>
+            ) : !isTaskActive ? (
+              // Prazo encerrado
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                  <div className="text-4xl text-red-400 mb-3"><i className="bi bi-alarm-fill"></i></div>
                   <p className="text-red-800 font-medium">
-                    Prazo de entrega encerrado
+                      Prazo Encerrado
                   </p>
                   <p className="text-sm text-red-600 mt-1">
-                    Você não pode mais enviar redação para esta tarefa.
+                      Não é mais possível enviar.
                   </p>
-                </div>
               </div>
-            </div>
-          ) : (
-            // Pode enviar
-            <UploadEssayForm
-              taskId={taskId}
-              onUploadSuccess={handleUploadSuccess}
-            />
-          )}
-        </div>
-      </Card>
+            ) : (
+              // Pode enviar
+              <div>
+                <UploadEssayForm
+                  taskId={taskId}
+                  onUploadSuccess={handleUploadSuccess}
+                />
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 };
