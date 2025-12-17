@@ -7,7 +7,7 @@ export class AuthService extends IAuthService {
     super();
     this.jwtSecret = process.env.JWT_SECRET;
     this.jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
-    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '15m';
+    this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || '1d';
     this.jwtRefreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
 
     if (!this.jwtSecret || !this.jwtRefreshSecret) {

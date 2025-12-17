@@ -52,7 +52,7 @@ export const ClassTasksPage = () => {
           onClick={() => navigate('/classes')}
           className="flex items-center gap-2 text-gray-600"
         >
-          <span>←</span> Voltar para Turmas
+          <span><i className="bi bi-arrow-left" /></span> Voltar para Turmas
         </Button>
       </div>
 
@@ -62,8 +62,8 @@ export const ClassTasksPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">{classData.name}</h1>
           <p className="text-gray-600 mt-2">{classData.description}</p>
           <div className="flex gap-4 mt-4 text-sm text-gray-500">
-            <span>👥 {classData.studentCount} alunos</span>
-            <span>📅 Criada em {new Date(classData.createdAt).toLocaleDateString('pt-BR')}</span>
+            <span><i className="bi bi-people-fill" /> {classData.studentCount} alunos</span>
+            <span><i className="bi bi-calendar-event" /> Criada em {new Date(classData.createdAt).toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
         <div>
@@ -77,14 +77,14 @@ export const ClassTasksPage = () => {
       {/* Listas de Tarefas */}
       <div className="space-y-8">
         <TaskList
-          title="📝 Em Andamento"
+          title={<><i className="bi bi-file-earmark-text-fill" /> Em Andamento</>}
           tasks={activeTasks}
           emptyMessage="Nenhuma tarefa em andamento no momento."
           onTaskClick={handleTaskClick}
         />
 
         <TaskList
-          title="✅ Encerradas"
+          title={<><i className="bi bi-check-circle-fill" /> Encerradas</>}
           tasks={completedTasks}
           emptyMessage="Nenhuma tarefa encerrada."
           onTaskClick={handleTaskClick}

@@ -23,11 +23,11 @@ export const ClassCard = ({ classData }) => {
 
         <div className="flex gap-4 text-sm text-gray-500 pt-2 border-t">
           <div className="flex items-center gap-1">
-            <span>📋</span>
+            <i className="bi bi-clipboard-data-fill" />
             <span>{classData.taskCount || 0} tarefas</span>
           </div>
           <div className="flex items-center gap-1">
-            <span>👥</span>
+            <i className="bi bi-people-fill" />
             <span>{classData.studentCount || 0} alunos</span>
           </div>
         </div>

@@ -149,7 +149,7 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-2xl">
-                {selectedFile.type.startsWith('image/') ? '🖼️' : '📄'}
+                {selectedFile.type.startsWith('image/') ? <i className="bi bi-file-image text-2xl" /> : <i className="bi bi-file-pdf text-2xl" />}
               </span>
               <div>
                 <p className="text-sm font-medium text-gray-900">
@@ -185,7 +185,7 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
             className="flex-1"
             onClick={handleButtonClick}
           >
-            📎 Selecionar arquivo
+            <i className="bi bi-paperclip" /> Selecionar arquivo
           </Button>
         ) : (
           <Button
@@ -196,7 +196,7 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
             isLoading={isUploading}
             disabled={isUploading}
           >
-            {isUploading ? 'Enviando...' : '📤 Enviar redação'}
+            {isUploading ? 'Enviando...' : <><i className="bi bi-cloud-upload-fill" /> Enviar redação</>}
           </Button>
         )}
       </div>

@@ -29,14 +29,14 @@ export const TaskCard = ({ task, onClick }) => {
             : 'bg-green-100 text-green-700 border border-green-200'
           }
         `}>
-          {isOverdue ? '⏰ Encerrada' : '✅ Em andamento'}
+          {isOverdue ? <><i className="bi bi-alarm-fill" /> Encerrada</> : <><i className="bi bi-check-circle-fill" /> Em andamento</>}
         </span>
       </div>
 
       <div className="mt-5 pt-4 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span className="text-base">📅</span>
+            <span className="text-base"><i className="bi bi-calendar-event" /></span>
             <span className="font-medium">
               {deadlineDate} às {deadlineTime}
             </span>

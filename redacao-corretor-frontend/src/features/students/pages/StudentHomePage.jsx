@@ -46,7 +46,7 @@ export const StudentHomePage = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold text-gray-800">
-            📝 Tarefas Pendentes ({pendingTasks.length})
+            <i className="bi bi-file-earmark-text-fill"></i> Tarefas Pendentes ({pendingTasks.length})
           </h2>
         </div>
 
@@ -57,12 +57,12 @@ export const StudentHomePage = () => {
                 Nenhuma tarefa pendente no momento.
               </p>
               <p className="text-gray-400 mt-2">
-                Você está em dia com suas redações! 🎉
+                Você está em dia com suas redações! <i className="bi bi-emoji-smile"></i>
               </p>
             </div>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {pendingTasks.map((task) => (
               <StudentTaskCard key={task.id} task={task} isPending={true} />
             ))}
@@ -75,11 +75,11 @@ export const StudentHomePage = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-gray-800">
-              ✅ Tarefas Encerradas ({completedTasks.length})
+              <i className="bi bi-check-circle-fill"></i> Tarefas Encerradas ({completedTasks.length})
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {completedTasks.map((task) => (
               <StudentTaskCard key={task.id} task={task} isPending={false} />
             ))}

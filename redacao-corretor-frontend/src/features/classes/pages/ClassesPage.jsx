@@ -51,7 +51,7 @@ export const ClassesPage = () => {
   }
 
   return (
-    <div className="p-8">
+    <div>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>

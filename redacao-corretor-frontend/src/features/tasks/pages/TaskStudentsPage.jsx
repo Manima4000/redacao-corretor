@@ -50,7 +50,7 @@ export const TaskStudentsPage = () => {
           onClick={() => navigate(`/classes/${classId}`)}
           className="flex items-center gap-2 text-gray-600"
         >
-          <span>←</span> Voltar para Tarefas
+          <span><i className="bi bi-arrow-left"></i></span> Voltar para Tarefas
         </Button>
       </div>
 
@@ -61,7 +61,7 @@ export const TaskStudentsPage = () => {
 
         {task.deadline && (
           <div className="flex items-center gap-2 mt-4 text-sm text-gray-500">
-            <span>📅</span>
+            <span><i className="bi bi-calendar-event"></i></span>
             <span>
               Prazo: {new Date(task.deadline).toLocaleDateString('pt-BR')} às{' '}
               {new Date(task.deadline).toLocaleTimeString('pt-BR', {
@@ -102,7 +102,7 @@ export const TaskStudentsPage = () => {
       {submitted.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-xl font-semibold text-gray-800">
-            ✅ Entregas Realizadas ({submitted.length})
+            <i className="bi bi-check-circle-fill"></i> Entregas Realizadas ({submitted.length})
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {submitted.map((student) => (
@@ -116,7 +116,7 @@ export const TaskStudentsPage = () => {
       {notSubmitted.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-xl font-semibold text-gray-800">
-            ⏳ Pendentes ({notSubmitted.length})
+            <i className="bi bi-hourglass-split"></i> Pendentes ({notSubmitted.length})
           </h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {notSubmitted.map((student) => (

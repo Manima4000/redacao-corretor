@@ -11,9 +11,10 @@
 3. [Arquitetura Clean Architecture](#arquitetura-clean-architecture)
 4. [Modelo de Dados](#modelo-de-dados)
 5. [Autenticação e Autorização](#autenticação-e-autorização)
-6. [Regras de Desenvolvimento](#regras-de-desenvolvimento)
-7. [Documentação Swagger](#documentação-swagger)
-8. [Variáveis de Ambiente](#variáveis-de-ambiente)
+6. [Upload de Arquivos e Google Drive](#upload-de-arquivos-e-google-drive)
+7. [Regras de Desenvolvimento](#regras-de-desenvolvimento)
+8. [Documentação Swagger](#documentação-swagger)
+9. [Variáveis de Ambiente](#variáveis-de-ambiente)
 
 ---
 
@@ -29,7 +30,10 @@ Sistema web para professora corrigir redações de alunos de diferentes turmas, 
 ### Stack Tecnológica
 - **Backend:** Node.js + Express.js + PostgreSQL
 - **Frontend:** React (repositório separado)
-- **Autenticação:** JWT (access token + refresh token)
+- **Autenticação:** JWT (access token + refresh token em cookies httpOnly)
+- **Storage:** Google Drive API (redações dos alunos)
+- **Upload:** Multer + Sharp (validação e processamento de imagens)
+- **Validação:** file-type (verificação de assinatura binária)
 - **Anotações:** Fabric.js (suporte a stylus pressure)
 - **Notificações:** Socket.io (WebSocket)
 - **Deploy:** Docker + Docker Compose
@@ -770,6 +774,287 @@ export const requireTeacher = (req, res, next) => {
 
 ---
 
+## Upload de Arquivos e Google Drive
+
+### Visão Geral
+
+O sistema usa **Google Drive** para armazenar as redações enviadas pelos alunos. Esta escolha foi feita por:
+
+- ✅ **Gratuito:** 15GB de armazenamento grátis
+- ✅ **Escalável:** Pode expandir com Google Workspace
+- ✅ **Confiável:** Infraestrutura do Google
+- ✅ **Organização:** Pastas por turma automaticamente
+
+### Arquitetura de Upload
+
+O sistema segue **Clean Architecture** e **SOLID** para upload de arquivos:
+
+```
+Aluno → Frontend → API → Middleware → Use Case → Repository + Storage Service → Google Drive + PostgreSQL
+```
+
+**Fluxo Completo:**
+
+1. **Multer Middleware:** Recebe arquivo e valida tipo MIME
+2. **Validação de Metadados:** Verifica integridade, dimensões, tipo real
+3. **Use Case (UploadEssayUseCase):** Orquestra lógica de negócio
+4. **Google Drive Service:** Faz upload para o Google Drive
+5. **Essay Repository:** Salva registro no PostgreSQL com ID do arquivo
+
+### Validação de Arquivos
+
+**⚠️ SEGURANÇA É CRÍTICA!** O sistema implementa múltiplas camadas de validação:
+
+#### 1. Validação de Tipo MIME (Multer)
+
+```javascript
+// uploadValidation.js
+const ALLOWED_MIME_TYPES = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'application/pdf': ['.pdf'],
+};
+```
+
+#### 2. Validação de Tamanho
+
+- **Máximo:** 10MB por arquivo
+- **Mínimo:** Imagens devem ter pelo menos 100x100px
+
+#### 3. Validação de Tipo Real (file-type)
+
+Verifica a **assinatura binária** do arquivo, não apenas a extensão:
+
+```javascript
+const fileType = await fileTypeFromBuffer(buffer);
+
+if (fileType.mime !== mimetype) {
+  throw new ValidationError('Possível tentativa de spoofing');
+}
+```
+
+#### 4. Validação de Metadados de Imagem (Sharp)
+
+Para imagens (JPEG, PNG):
+
+```javascript
+const metadata = await sharp(buffer).metadata();
+
+// Verifica:
+// - Dimensões mínimas/máximas
+// - Formato real da imagem
+// - Densidade de pixels (previne decompression bombs)
+```
+
+#### 5. Validação de PDF
+
+Para PDFs:
+
+```javascript
+// Verifica assinatura: %PDF-
+// Verifica EOF: %%EOF
+// Bloqueia PDFs com JavaScript (segurança)
+```
+
+### Interface IFileStorageService
+
+Seguindo **OCP (Open/Closed Principle)**, usamos interface para abstrair storage:
+
+```javascript
+export class IFileStorageService {
+  async upload(buffer, metadata) { /* ... */ }
+  async delete(fileIdentifier) { /* ... */ }
+  async getPublicUrl(fileIdentifier) { /* ... */ }
+  async exists(fileIdentifier) { /* ... */ }
+  async getMetadata(fileIdentifier) { /* ... */ }
+}
+```
+
+**Implementações disponíveis:**
+- ✅ `GoogleDriveStorageService` (atual)
+- 🔜 `S3StorageService` (futuro)
+- 🔜 `LocalStorageService` (desenvolvimento apenas)
+
+### GoogleDriveStorageService
+
+Implementação que usa Google Drive API v3:
+
+```javascript
+export class GoogleDriveStorageService extends IFileStorageService {
+  async upload(buffer, metadata) {
+    // 1. Converter buffer para stream
+    const stream = Readable.from(buffer);
+
+    // 2. Configurar metadados
+    const fileMetadata = {
+      name: this._sanitizeFilename(metadata.filename),
+      parents: [metadata.folder || 'root'],
+    };
+
+    // 3. Fazer upload
+    const response = await this.drive.files.create({
+      requestBody: fileMetadata,
+      media: { mimeType: metadata.mimetype, body: stream },
+      fields: 'id, name, webViewLink',
+    });
+
+    // 4. Tornar público (permissão de leitura)
+    await this._makePublic(response.data.id);
+
+    return response.data.id;
+  }
+}
+```
+
+**Características:**
+
+- **Autenticação:** Service Account (JWT)
+- **Organização:** Arquivos organizados por `classId` (turma)
+- **Permissões:** Público para leitura (qualquer um com link)
+- **Naming:** `{studentId}_{taskId}_{timestamp}_{originalname}`
+
+### Configuração do Google Drive
+
+Veja o arquivo **GOOGLE_DRIVE_SETUP.md** para instruções detalhadas.
+
+**Resumo:**
+
+1. Criar projeto no Google Cloud Console
+2. Ativar Google Drive API
+3. Criar Service Account
+4. Baixar arquivo JSON de credenciais
+5. Configurar variáveis de ambiente:
+
+```env
+UPLOAD_STORAGE_TYPE=google_drive
+GOOGLE_DRIVE_AUTH_TYPE=service_account
+GOOGLE_DRIVE_CREDENTIALS_PATH=./credentials/google-drive-service-account.json
+GOOGLE_DRIVE_FOLDER_ID=root
+```
+
+### Upload de Redações (Essays)
+
+**Endpoint:** `POST /api/essays/upload`
+
+**Middleware Chain:**
+
+```javascript
+router.post(
+  '/upload',
+  authMiddleware,              // 1. Verifica autenticação
+  upload.single('file'),       // 2. Multer recebe arquivo
+  handleMulterError,           // 3. Trata erros do Multer
+  validateFileMetadata,        // 4. Valida metadados
+  essayController.upload       // 5. Chama controller
+);
+```
+
+**Use Case: UploadEssayUseCase**
+
+```javascript
+export class UploadEssayUseCase {
+  constructor(essayRepository, taskRepository, studentRepository, fileStorageService) {
+    // Dependency Injection (DIP)
+  }
+
+  async execute({ taskId, studentId, fileBuffer, fileMetadata }) {
+    // 1. Validar que tarefa existe
+    // 2. Validar que aluno existe
+    // 3. Validar que aluno pertence à turma
+    // 4. Verificar se já enviou redação (evitar duplicatas)
+    // 5. Fazer upload para Google Drive
+    // 6. Salvar registro no banco
+    // 7. Retornar redação com URL pública
+  }
+}
+```
+
+### Modelo de Dados (Essay)
+
+```sql
+CREATE TABLE essays (
+  id UUID PRIMARY KEY,
+  task_id UUID REFERENCES tasks(id),
+  student_id UUID REFERENCES students(id),
+  file_url VARCHAR(500),        -- ID do arquivo no Google Drive
+  status VARCHAR(20),            -- pending, correcting, corrected
+  submitted_at TIMESTAMP,
+  corrected_at TIMESTAMP,
+  created_at TIMESTAMP,
+  updated_at TIMESTAMP
+);
+```
+
+**Campos importantes:**
+
+- `file_url`: Armazena **ID do arquivo no Google Drive** (não URL completa)
+- `status`: Workflow da correção
+  - `pending`: Aguardando correção
+  - `correcting`: Professora está corrigindo
+  - `corrected`: Correção finalizada
+
+### Segurança
+
+**⚠️ IMPORTANTE: Prevenção de Ataques**
+
+1. **Upload Bombs:** Validação de dimensões e densidade de pixels
+2. **Type Spoofing:** Verificação de assinatura binária
+3. **Malicious PDFs:** Bloqueio de PDFs com JavaScript
+4. **Path Traversal:** Sanitização de nomes de arquivo
+5. **Rate Limiting:** Limite de requests por usuário
+6. **Size Limits:** Máximo 10MB por arquivo
+
+**Exemplo de Sanitização:**
+
+```javascript
+_sanitizeFilename(filename) {
+  return filename
+    .replace(/[<>:"/\\|?*\x00-\x1F]/g, '_')  // Remove caracteres inválidos
+    .replace(/\s+/g, '_')                     // Substitui espaços
+    .replace(/_+/g, '_');                     // Remove underscores duplicados
+}
+```
+
+### Tratamento de Erros
+
+```javascript
+// Erros específicos do domínio
+throw new ValidationError('Arquivo muito pequeno');
+throw new ConflictError('Você já enviou redação para esta tarefa');
+throw new NotFoundError('Tarefa');
+
+// Middleware de erro converte para HTTP
+400 - Validation Error
+404 - Not Found
+409 - Conflict
+500 - Internal Server Error
+```
+
+### Organização no Google Drive
+
+```
+Google Drive/
+└── [Pasta Raiz - configurável]/
+    ├── [Class ID - Turma 1]/
+    │   ├── student1_task1_1702345678_redacao.jpg
+    │   ├── student2_task1_1702345679_redacao.pdf
+    │   └── ...
+    ├── [Class ID - Turma 2]/
+    │   └── ...
+    └── ...
+```
+
+### Próximos Passos (Essays)
+
+- [ ] Implementar `GetEssaysByTaskUseCase` (listar redações por tarefa)
+- [ ] Implementar `GetMyEssaysUseCase` (listar redações do aluno)
+- [ ] Implementar `DeleteEssayUseCase` (deletar redação + arquivo)
+- [ ] Adicionar compressão de imagens antes do upload (Sharp)
+- [ ] Implementar preview de PDFs no frontend
+- [ ] Sistema de versionamento (permitir reenvio)
+
+---
+
 ## Regras de Desenvolvimento
 
 ### 1. SEMPRE Siga SOLID
@@ -1125,17 +1410,21 @@ npm start
 - [x] Middleware (auth, requireTeacher, errorHandler, validate)
 - [x] Documentação Swagger completa para Auth
 
-### 🚧 Fase 2: Turmas e Tarefas (EM ANDAMENTO)
-- [ ] CRUD de turmas (apenas professores)
-- [ ] Listar alunos de uma turma
-- [ ] CRUD de tarefas (por turma)
-- [ ] Listar tarefas da turma do aluno
+### ✅ Fase 2: Turmas e Tarefas (COMPLETO)
+- [x] CRUD de turmas (apenas professores)
+- [x] Listar alunos de uma turma
+- [x] CRUD de tarefas (por turma)
+- [x] Listar tarefas da turma do aluno
+- [x] Sistema de status de tarefas (em andamento/encerradas)
+- [x] Listagem de alunos por tarefa com status de entrega
 
-### 📋 Fase 3: Upload e Visualização
-- [ ] Configurar multer + FileStorageService
-- [ ] Upload de redações (JPEG, PNG, PDF)
-- [ ] Visualização de redações
-- [ ] Status tracking (pending/correcting/corrected)
+### ✅ Fase 3: Upload e Visualização (COMPLETO)
+- [x] Configurar multer + GoogleDriveStorageService
+- [x] Validação avançada de arquivos (tipo, tamanho, metadados)
+- [x] Upload de redações (JPEG, PNG, PDF) para Google Drive
+- [x] Repository e Use Cases de essays
+- [x] Status tracking (pending/correcting/corrected)
+- [x] Documentação Swagger para Essays
 
 ### 🎨 Fase 4: Anotações (Core Feature)
 - [ ] Integrar Fabric.js no frontend

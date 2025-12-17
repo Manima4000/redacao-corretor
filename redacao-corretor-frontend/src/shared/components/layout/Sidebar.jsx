@@ -32,25 +32,25 @@ export const Sidebar = () => {
     {
       label: 'Dashboard',
       path: ROUTES.DASHBOARD,
-      icon: '📊',
+      icon: <i className="bi bi-bar-chart-fill" />,
       teacherOnly: true, // Apenas professores
     },
     {
       label: 'Turmas',
       path: ROUTES.CLASSES,
-      icon: '👥',
+      icon: <i className="bi bi-people-fill" />,
       teacherOnly: true, // Apenas professores
     },
     {
       label: 'Minhas Tarefas',
       path: ROUTES.HOME,
-      icon: '📝',
+      icon: <i className="bi bi-file-earmark-text-fill" />,
       studentOnly: true, // Apenas alunos
     },
     {
       label: 'Perfil',
       path: ROUTES.PROFILE,
-      icon: '⚙️',
+      icon: <i className="bi bi-gear-fill" />,
       show: true, // Todos podem ver
     },
   ];
@@ -113,7 +113,7 @@ export const Sidebar = () => {
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-red-600 hover:text-white transition-colors"
         >
-          <span className="text-xl">🚪</span>
+          <span className="text-xl"><i className="bi bi-box-arrow-right" /></span>
           <span className="font-medium">Sair</span>
         </button>
       </div>

@@ -9,22 +9,22 @@ export const StudentListItem = ({ student }) => {
     if (!student.hasSubmitted) {
       return (
         <span className="px-3 py-1.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-          ⏳ Pendente
+          <i className="bi bi-hourglass-split"></i> Pendente
         </span>
       );
     }
 
     const statusMap = {
       pending: {
-        label: '📝 Enviado',
+        label: <><i className="bi bi-file-earmark-text-fill"></i> Enviado</>,
         className: 'bg-blue-100 text-blue-700 border-blue-200',
       },
       correcting: {
-        label: '✏️ Corrigindo',
+        label: <><i className="bi bi-pencil-fill"></i> Corrigindo</>,
         className: 'bg-yellow-100 text-yellow-700 border-yellow-200',
       },
       corrected: {
-        label: '✅ Corrigido',
+        label: <><i className="bi bi-check-circle-fill"></i> Corrigido</>,
         className: 'bg-green-100 text-green-700 border-green-200',
       },
     };
@@ -71,14 +71,14 @@ export const StudentListItem = ({ student }) => {
 
           {student.hasSubmitted && student.essay?.submittedAt && (
             <div className="mt-3 text-xs text-gray-600 flex items-center gap-2">
-              <span>📅</span>
+              <span><i className="bi bi-calendar-event"></i></span>
               <span>Enviado em: {formatDate(student.essay.submittedAt)}</span>
             </div>
           )}
 
           {student.essay?.correctedAt && (
             <div className="mt-1 text-xs text-gray-600 flex items-center gap-2">
-              <span>✅</span>
+              <span><i className="bi bi-check-circle-fill"></i></span>
               <span>Corrigido em: {formatDate(student.essay.correctedAt)}</span>
             </div>
           )}

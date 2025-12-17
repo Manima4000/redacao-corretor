@@ -196,7 +196,7 @@ export function AnnotationDemo() {
       >
         <div style={{ flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>
-            🎨 Teste de Anotações
+            <i className="bi bi-palette-fill" /> Teste de Anotações
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: '14px', color: '#666' }}>
             Use <strong>Caneta/Mouse</strong> para desenhar | Use <strong>Dedo</strong> para mover
@@ -213,10 +213,10 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          {stylus.currentPointerType === 'pen' && '✏️ Caneta'}
-          {stylus.currentPointerType === 'touch' && '👆 Dedo'}
-          {stylus.currentPointerType === 'mouse' && '🖱️ Mouse'}
-          {!stylus.currentPointerType && '⏸️ Aguardando...'}
+          {stylus.currentPointerType === 'pen' && <><i className="bi bi-pencil-fill" /> Caneta</>}
+          {stylus.currentPointerType === 'touch' && <><i className="bi bi-hand-index-thumb-fill" /> Dedo</>}
+          {stylus.currentPointerType === 'mouse' && <><i className="bi bi-mouse-fill" /> Mouse</>}
+          {!stylus.currentPointerType && <><i className="bi bi-pause-circle-fill" /> Aguardando...</>}
         </div>
 
         {/* Zoom info */}
@@ -229,7 +229,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          🔍 Zoom: {(zoom.scale * 100).toFixed(0)}%
+          <i className="bi bi-zoom-in" /> Zoom: {(zoom.scale * 100).toFixed(0)}%
         </div>
 
         {/* Zoom controls */}
@@ -245,7 +245,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          ➖ Zoom Out
+          <i className="bi bi-dash-lg" /> Zoom Out
         </button>
         <button
           onClick={zoom.zoomIn}
@@ -259,7 +259,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          ➕ Zoom In
+          <i className="bi bi-plus-lg" /> Zoom In
         </button>
         <button
           onClick={zoom.resetZoom}
@@ -273,7 +273,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          🔄 Reset
+          <i className="bi bi-arrow-counterclockwise" /> Reset
         </button>
 
         {/* Clear button */}
@@ -289,7 +289,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          🗑️ Limpar
+          <i className="bi bi-trash-fill" /> Limpar
         </button>
       </div>
 
@@ -393,7 +393,7 @@ export function AnnotationDemo() {
             fontWeight: 'bold',
           }}
         >
-          📝 Linhas: {lines.length}
+          <i className="bi bi-pencil-square" /> Linhas: {lines.length}
         </div>
       </div>
     </div>

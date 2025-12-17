@@ -148,7 +148,7 @@ export const TaskDetailPage = () => {
           onClick={() => navigate('/')}
           className="flex items-center gap-2"
         >
-          ← Voltar
+          <i className="bi bi-arrow-left"></i> Voltar
         </Button>
       </div>
 
@@ -166,23 +166,23 @@ export const TaskDetailPage = () => {
                 : 'text-red-600'
             }`}
           >
-            📅 {formatDeadline}
+            <i className="bi bi-calendar-event"></i> {formatDeadline}
           </span>
 
           {/* Badge de status */}
           {isNearDeadline && isTaskActive && (
             <span className="bg-orange-100 text-orange-700 text-xs px-3 py-1 rounded-full font-medium">
-              ⚠️ Prazo próximo!
+              <i className="bi bi-exclamation-triangle-fill"></i> Prazo próximo!
             </span>
           )}
           {!isTaskActive && (
             <span className="bg-red-100 text-red-700 text-xs px-3 py-1 rounded-full font-medium">
-              ⏰ Prazo encerrado
+              <i className="bi bi-alarm-fill"></i> Prazo encerrado
             </span>
           )}
           {hasSubmitted && (
             <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">
-              ✓ Enviada
+              <i className="bi bi-check-lg"></i> Enviada
             </span>
           )}
         </div>
@@ -193,7 +193,7 @@ export const TaskDetailPage = () => {
         <div className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              📋 Tema da Redação
+              <i className="bi bi-clipboard-data-fill"></i> Tema da Redação
             </h2>
             <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
               {task.description}
@@ -206,7 +206,7 @@ export const TaskDetailPage = () => {
       <Card>
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">
-            📤 Envio da Redação
+            <i className="bi bi-cloud-upload-fill"></i> Envio da Redação
           </h2>
 
           {hasSubmitted ? (
@@ -214,7 +214,7 @@ export const TaskDetailPage = () => {
             <div className="space-y-4">
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">✓</span>
+                  <span className="text-2xl"><i className="bi bi-check-lg"></i></span>
                   <div className="flex-1">
                     <p className="text-green-800 font-medium">
                       Redação enviada com sucesso!
@@ -254,9 +254,9 @@ export const TaskDetailPage = () => {
                       : 'bg-green-100 text-green-700'
                   }`}
                 >
-                  {essay.status === 'pending' && '⏳ Pendente'}
-                  {essay.status === 'correcting' && '✍️ Corrigindo'}
-                  {essay.status === 'corrected' && '✓ Corrigida'}
+                  {essay.status === 'pending' && <span><i className="bi bi-hourglass-split"></i> Pendente</span>}
+                  {essay.status === 'correcting' && <span><i className="bi bi-pencil-fill"></i> Corrigindo</span>}
+                  {essay.status === 'corrected' && <span><i className="bi bi-check-lg"></i> Corrigida</span>}
                 </span>
               </div>
 
@@ -268,7 +268,7 @@ export const TaskDetailPage = () => {
                   className="flex-1"
                   onClick={() => window.open(essay.publicUrl, '_blank')}
                 >
-                  👁️ Visualizar redação
+                  <i className="bi bi-eye-fill"></i> Visualizar redação
                 </Button>
                 {essay.status === 'pending' && isTaskActive && (
                   <Button
@@ -277,7 +277,7 @@ export const TaskDetailPage = () => {
                     onClick={handleDelete}
                     disabled={isDeleting}
                   >
-                    {isDeleting ? '⏳ Deletando...' : '🗑️ Deletar e reenviar'}
+                    {isDeleting ? <span><i className="bi bi-hourglass-split"></i> Deletando...</span> : <span><i className="bi bi-trash-fill"></i> Deletar e reenviar</span>}
                   </Button>
                 )}
               </div>
@@ -292,7 +292,7 @@ export const TaskDetailPage = () => {
             // Prazo encerrado
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <span className="text-2xl">⏰</span>
+                <span className="text-2xl"><i className="bi bi-alarm-fill"></i></span>
                 <div>
                   <p className="text-red-800 font-medium">
                     Prazo de entrega encerrado

@@ -54,51 +54,42 @@ export const StudentTaskCard = ({ task, isPending }) => {
   return (
     <Card
       onClick={handleClick}
-      className={`cursor-pointer transition-all hover:shadow-lg ${
-        isNearDeadline() ? 'border-l-4 border-l-orange-500' : ''
-      } ${!isPending ? 'opacity-75' : ''}`}
+      className={`p-6 hover:border-blue-500 border-2 border-transparent cursor-pointer transition-all ${
+        !isPending ? 'opacity-75 bg-gray-50' : ''
+      }`}
     >
       <div className="space-y-3">
         {/* Título e Descrição */}
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-          <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+          <h3 className="text-xl font-bold text-gray-900">{task.title}</h3>
+          <p className="text-gray-600 text-sm line-clamp-2 mt-1">
             {task.description}
           </p>
         </div>
 
-        {/* Prazo */}
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">📅</span>
-          <span
-            className={`font-medium ${
-              isNearDeadline()
-                ? 'text-orange-600'
-                : isPending
-                ? 'text-gray-700'
-                : 'text-gray-500'
-            }`}
-          >
-            {formatDate(task.deadline)}
-          </span>
-          {isNearDeadline() && (
-            <span className="ml-auto bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">
-              Prazo próximo!
+        {/* Footer Info */}
+        <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <span><i className="bi bi-calendar-event" /></span>
+            <span
+              className={`${
+                isNearDeadline() ? 'text-orange-600 font-medium' : ''
+              }`}
+            >
+              Entrega: {formatDate(task.deadline)}
             </span>
-          )}
-        </div>
+          </div>
 
-        {/* Status */}
-        <div className="pt-2 border-t border-gray-100">
-          {isPending ? (
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">
-                Clique para enviar redação
-              </span>
-              <span className="text-blue-600 text-sm font-medium">→</span>
-            </div>
-          ) : (
-            <div className="text-sm text-gray-500">Prazo encerrado</div>
+          {isNearDeadline() && isPending && (
+            <p className="text-xs text-orange-600 font-medium flex items-center gap-1">
+              <i className="bi bi-exclamation-triangle-fill" /> Prazo encerrando em breve!
+            </p>
+          )}
+
+          {!isPending && (
+            <p className="text-xs text-gray-400">
+              Prazo encerrado
+            </p>
           )}
         </div>
       </div>
