@@ -4,6 +4,7 @@ import { GetTaskByIdUseCase } from '../../../application/use-cases/tasks/GetTask
 import { UpdateTaskUseCase } from '../../../application/use-cases/tasks/UpdateTaskUseCase.js';
 import { DeleteTaskUseCase } from '../../../application/use-cases/tasks/DeleteTaskUseCase.js';
 import { GetTaskStudentsUseCase } from '../../../application/use-cases/tasks/GetTaskStudentsUseCase.js';
+import { GetTasksByClassUseCase } from '../../../application/use-cases/tasks/GetTasksByClassUseCase.js';
 import { CreateTaskDTO } from '../../../application/dtos/CreateTaskDTO.js';
 import { UpdateTaskDTO } from '../../../application/dtos/UpdateTaskDTO.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
@@ -44,6 +45,11 @@ export class TaskController {
       this.taskRepository
     );
 
+    this.getTasksByClassUseCase = new GetTasksByClassUseCase(
+      this.taskRepository,
+      this.classRepository
+    );
+
     // Bind dos métodos (para manter contexto quando usado como callback)
     this.create = this.create.bind(this);
     this.getAll = this.getAll.bind(this);
@@ -51,6 +57,7 @@ export class TaskController {
     this.update = this.update.bind(this);
     this.delete = this.delete.bind(this);
     this.getStudents = this.getStudents.bind(this);
+    this.getTasksByClass = this.getTasksByClass.bind(this);
   }
 
   /**
@@ -182,6 +189,25 @@ export class TaskController {
       const { id } = req.params;
 
       const result = await this.getTaskStudentsUseCase.execute(id);
+
+      res.status(200).json({
+        success: true,
+        data: result,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * GET /api/tasks/class/:classId
+   * Busca todas as tarefas de uma turma específica
+   */
+  async getTasksByClass(req, res, next) {
+    try {
+      const { classId } = req.params;
+
+      const result = await this.getTasksByClassUseCase.execute(classId);
 
       res.status(200).json({
         success: true,

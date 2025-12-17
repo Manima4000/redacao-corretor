@@ -138,6 +138,53 @@ router.get('/', authMiddleware, taskController.getAll);
 
 /**
  * @swagger
+ * /api/tasks/class/{classId}:
+ *   get:
+ *     summary: Buscar tarefas de uma turma
+ *     description: Retorna todas as tarefas de uma turma específica (alunos e professores)
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: classId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da turma
+ *     responses:
+ *       200:
+ *         description: Lista de tarefas da turma
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Task'
+ *       401:
+ *         description: Token não fornecido ou inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: Turma não encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get('/class/:classId', authMiddleware, taskController.getTasksByClass);
+
+/**
+ * @swagger
  * /api/tasks/{id}:
  *   get:
  *     summary: Buscar tarefa por ID

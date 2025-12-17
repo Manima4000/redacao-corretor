@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/shared/constants/routes';
 import { PrivateRoute } from './PrivateRoute';
+import { RequireTeacher } from '@/features/auth/components/RequireTeacher';
 
 // Pages
 import { LoginPage } from '@/features/auth/pages/LoginPage';
@@ -9,16 +10,25 @@ import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
 import { ClassesPage } from '@/features/classes/pages/ClassesPage';
 import { ClassTasksPage } from '@/features/classes/pages/ClassTasksPage';
 import { TaskStudentsPage } from '@/features/tasks/pages/TaskStudentsPage';
+import { StudentHomePage } from '@/features/students/pages/StudentHomePage';
 
 // Layout
 import { MainLayout } from '@/shared/components/layout/MainLayout';
 
 /**
  * Configuração de rotas da aplicação
- * Usa React Router v7
+ * SRP: Apenas define as rotas e proteções
  */
 export const AppRouter = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isTeacher } = useAuth();
+
+  /**
+   * Determina rota de redirecionamento baseado no tipo de usuário
+   */
+  const getDefaultRoute = () => {
+    if (!isAuthenticated) return ROUTES.LOGIN;
+    return isTeacher() ? ROUTES.DASHBOARD : ROUTES.HOME;
+  };
 
   return (
     <BrowserRouter>
@@ -27,18 +37,32 @@ export const AppRouter = () => {
         <Route
           path={ROUTES.LOGIN}
           element={
-            isAuthenticated ? <Navigate to={ROUTES.DASHBOARD} replace /> : <LoginPage />
+            isAuthenticated ? <Navigate to={getDefaultRoute()} replace /> : <LoginPage />
           }
         />
 
-        {/* Private routes - Com Layout */}
+        {/* Private routes - Student */}
+        <Route
+          path={ROUTES.HOME}
+          element={
+            <PrivateRoute>
+              <MainLayout>
+                <StudentHomePage />
+              </MainLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Private routes - Teacher Only */}
         <Route
           path={ROUTES.DASHBOARD}
           element={
             <PrivateRoute>
-              <MainLayout>
-                <DashboardPage />
-              </MainLayout>
+              <RequireTeacher>
+                <MainLayout>
+                  <DashboardPage />
+                </MainLayout>
+              </RequireTeacher>
             </PrivateRoute>
           }
         />
@@ -47,9 +71,11 @@ export const AppRouter = () => {
           path={ROUTES.CLASSES}
           element={
             <PrivateRoute>
-              <MainLayout>
-                <ClassesPage />
-              </MainLayout>
+              <RequireTeacher>
+                <MainLayout>
+                  <ClassesPage />
+                </MainLayout>
+              </RequireTeacher>
             </PrivateRoute>
           }
         />
@@ -58,9 +84,11 @@ export const AppRouter = () => {
           path={ROUTES.CLASS_DETAIL}
           element={
             <PrivateRoute>
-              <MainLayout>
-                <ClassTasksPage />
-              </MainLayout>
+              <RequireTeacher>
+                <MainLayout>
+                  <ClassTasksPage />
+                </MainLayout>
+              </RequireTeacher>
             </PrivateRoute>
           }
         />
@@ -69,18 +97,12 @@ export const AppRouter = () => {
           path={ROUTES.TASK_DETAIL}
           element={
             <PrivateRoute>
-              <MainLayout>
-                <TaskStudentsPage />
-              </MainLayout>
+              <RequireTeacher>
+                <MainLayout>
+                  <TaskStudentsPage />
+                </MainLayout>
+              </RequireTeacher>
             </PrivateRoute>
-          }
-        />
-
-        {/* Root redirect */}
-        <Route
-          path={ROUTES.HOME}
-          element={
-            <Navigate to={isAuthenticated ? ROUTES.DASHBOARD : ROUTES.LOGIN} replace />
           }
         />
 

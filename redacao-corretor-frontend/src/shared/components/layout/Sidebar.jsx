@@ -24,26 +24,52 @@ export const Sidebar = () => {
     }
   };
 
+  /**
+   * Define itens do menu baseado no tipo de usuário
+   * SRP: Apenas define quais itens mostrar para cada tipo
+   */
   const menuItems = [
     {
       label: 'Dashboard',
       path: ROUTES.DASHBOARD,
       icon: '📊',
-      show: true,
+      teacherOnly: true, // Apenas professores
     },
     {
       label: 'Turmas',
       path: ROUTES.CLASSES,
       icon: '👥',
-      show: true,
+      teacherOnly: true, // Apenas professores
+    },
+    {
+      label: 'Minhas Tarefas',
+      path: ROUTES.HOME,
+      icon: '📝',
+      studentOnly: true, // Apenas alunos
     },
     {
       label: 'Perfil',
       path: ROUTES.PROFILE,
       icon: '⚙️',
-      show: true,
+      show: true, // Todos podem ver
     },
   ];
+
+  /**
+   * Filtra menu baseado no tipo de usuário
+   */
+  const filteredMenuItems = menuItems.filter((item) => {
+    // Se item é para todos, mostrar
+    if (item.show) return true;
+
+    // Se item é apenas para professores
+    if (item.teacherOnly) return isTeacher();
+
+    // Se item é apenas para alunos
+    if (item.studentOnly) return !isTeacher();
+
+    return false;
+  });
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
@@ -63,24 +89,22 @@ export const Sidebar = () => {
 
       {/* Menu */}
       <nav className="flex-1 p-4 space-y-2">
-        {menuItems
-          .filter((item) => item.show)
-          .map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-300 hover:bg-gray-800'
-                }`
-              }
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
-            </NavLink>
-          ))}
+        {filteredMenuItems.map((item) => (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                isActive
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-300 hover:bg-gray-800'
+              }`
+            }
+          >
+            <span className="text-xl">{item.icon}</span>
+            <span className="font-medium">{item.label}</span>
+          </NavLink>
+        ))}
       </nav>
 
       {/* Logout */}

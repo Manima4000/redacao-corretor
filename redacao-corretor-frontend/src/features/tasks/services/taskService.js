@@ -58,4 +58,14 @@ export const taskService = {
     const response = await api.get(`/tasks/${taskId}/students`);
     return response.data.data;
   },
+
+  /**
+   * Busca tarefas de uma turma específica
+   * @param {string} classId - ID da turma
+   * @returns {Promise<Array>} Lista de tarefas da turma
+   */
+  async getTasksByClass(classId) {
+    const response = await api.get(`/tasks/class/${classId}`);
+    return response.data.data;
+  },
 };
