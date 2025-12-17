@@ -4,6 +4,7 @@ import classRoutes from './classes.routes.js';
 import taskRoutes from './tasks.routes.js';
 import essayRoutes from './essays.routes.js';
 import testRoutes from './test.routes.js';
+import studentRoutes from './students.routes.js';
 
 const router = Router();
 
@@ -12,6 +13,7 @@ const router = Router();
  */
 router.use('/auth', authRoutes);
 router.use('/classes', classRoutes);
+router.use('/students', studentRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/essays', essayRoutes);
 

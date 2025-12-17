@@ -1,18 +1,38 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useClassDetails } from '../hooks/useClassDetails';
 import { useTasks } from '@/features/tasks/hooks/useTasks';
 import { TaskList } from '@/features/tasks/components/TaskList';
+import { AddStudentModal } from '../components/AddStudentModal';
+import { classService } from '../services/classService';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/hooks/useToast';
 
 export const ClassTasksPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
   
-  const { classData, isLoading: isLoadingClass, error: classError } = useClassDetails(id);
+  const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
+  
+  const { classData, isLoading: isLoadingClass, error: classError, refetch: refetchClass } = useClassDetails(id);
   
   // Busca tasks filtrando por classId
   const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks({ classId: id });
+
+  const handleAddStudent = async (studentId) => {
+    try {
+      await classService.addStudent(id, studentId);
+      toast.success('Aluno adicionado com sucesso!');
+      setIsAddStudentModalOpen(false);
+      refetchClass(); // Atualiza contador de alunos
+    } catch (error) {
+      console.error(error);
+      const msg = error.response?.data?.error || 'Erro ao adicionar aluno';
+      toast.error(msg);
+    }
+  };
 
   if (isLoadingClass || isLoadingTasks) {
     return (
@@ -66,10 +86,12 @@ export const ClassTasksPage = () => {
             <span><i className="bi bi-calendar-event" /> Criada em {new Date(classData.createdAt).toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
-        <div>
-            {/* Botão para criar tarefa (futuro) */}
+        <div className="flex flex-col gap-2">
             <Button onClick={() => console.log('Nova Tarefa')}>
                 Nova Tarefa
+            </Button>
+            <Button variant="outline" onClick={() => setIsAddStudentModalOpen(true)}>
+                Adicionar Aluno
             </Button>
         </div>
       </div>
@@ -90,6 +112,12 @@ export const ClassTasksPage = () => {
           onTaskClick={handleTaskClick}
         />
       </div>
+
+      <AddStudentModal 
+        isOpen={isAddStudentModalOpen} 
+        onClose={() => setIsAddStudentModalOpen(false)}
+        onAddStudent={handleAddStudent}
+      />
     </div>
   );
 };

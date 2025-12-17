@@ -119,6 +119,24 @@ export class StudentRepository extends IStudentRepository {
   }
 
   /**
+   * Busca alunos por nome (parcial)
+   * @param {string} name - Nome ou parte do nome
+   * @returns {Promise<Student[]>} Lista de alunos encontrados
+   */
+  async findByName(name) {
+    const sql = `
+      SELECT id, email, password_hash, full_name, enrollment_number, class_id, created_at, updated_at
+      FROM students
+      WHERE full_name ILIKE $1
+      ORDER BY full_name ASC
+      LIMIT 10
+    `;
+
+    const result = await query(sql, [`%${name}%`]);
+    return result.rows.map(row => this._mapToEntity(row));
+  }
+
+  /**
    * Atualiza aluno
    * @param {string} id - ID do aluno
    * @param {Object} studentData - Dados para atualizar

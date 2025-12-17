@@ -27,4 +27,9 @@ export const classService = {
   async deleteClass(id) {
     await api.delete(`/classes/${id}`);
   },
+
+  async addStudent(classId, studentId) {
+    const response = await api.post(`/classes/${classId}/students`, { studentId });
+    return response.data.data;
+  },
 };
