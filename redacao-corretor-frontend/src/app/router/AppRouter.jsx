@@ -11,6 +11,7 @@ import { ClassesPage } from '@/features/classes/pages/ClassesPage';
 import { ClassTasksPage } from '@/features/classes/pages/ClassTasksPage';
 import { TaskStudentsPage } from '@/features/tasks/pages/TaskStudentsPage';
 import { StudentHomePage } from '@/features/students/pages/StudentHomePage';
+import { TaskDetailPage } from '@/features/students/pages/TaskDetailPage';
 
 // Layout
 import { MainLayout } from '@/shared/components/layout/MainLayout';
@@ -48,6 +49,17 @@ export const AppRouter = () => {
             <PrivateRoute>
               <MainLayout>
                 <StudentHomePage />
+              </MainLayout>
+            </PrivateRoute>
+          }
+        />
+
+        <Route
+          path="/tasks/:taskId"
+          element={
+            <PrivateRoute>
+              <MainLayout>
+                <TaskDetailPage />
               </MainLayout>
             </PrivateRoute>
           }

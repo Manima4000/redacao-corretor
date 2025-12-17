@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { EssayController } from '../controllers/EssayController.js';
 import { UploadEssayUseCase } from '../../../application/use-cases/essays/UploadEssayUseCase.js';
+import { GetStudentEssayByTaskUseCase } from '../../../application/use-cases/essays/GetStudentEssayByTaskUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
@@ -29,8 +30,17 @@ const uploadEssayUseCase = new UploadEssayUseCase(
   fileStorageService
 );
 
+const getStudentEssayByTaskUseCase = new GetStudentEssayByTaskUseCase(
+  essayRepository,
+  taskRepository,
+  fileStorageService
+);
+
 // Controller
-const essayController = new EssayController(uploadEssayUseCase);
+const essayController = new EssayController(
+  uploadEssayUseCase,
+  getStudentEssayByTaskUseCase
+);
 
 /**
  * @swagger
@@ -125,6 +135,69 @@ router.post(
   handleMulterError, // Tratamento de erros do Multer
   validateFileMetadata, // Validação de metadados
   (req, res, next) => essayController.upload(req, res, next)
+);
+
+/**
+ * @swagger
+ * /api/essays/task/{taskId}/student:
+ *   get:
+ *     summary: Buscar minha redação para uma tarefa
+ *     description: Retorna a redação enviada pelo aluno autenticado para uma tarefa específica
+ *     tags: [Essays]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: taskId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da tarefa
+ *     responses:
+ *       200:
+ *         description: Redação encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     taskId:
+ *                       type: string
+ *                       format: uuid
+ *                     studentId:
+ *                       type: string
+ *                       format: uuid
+ *                     fileUrl:
+ *                       type: string
+ *                     publicUrl:
+ *                       type: string
+ *                     fileType:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [pending, correcting, corrected]
+ *                     submittedAt:
+ *                       type: string
+ *                       format: date-time
+ *       403:
+ *         description: Apenas alunos podem acessar
+ *       404:
+ *         description: Nenhuma redação encontrada para esta tarefa
+ */
+router.get(
+  '/task/:taskId/student',
+  authMiddleware,
+  (req, res, next) => essayController.getStudentEssayByTask(req, res, next)
 );
 
 /**

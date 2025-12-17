@@ -14,9 +14,15 @@
 export class EssayController {
   /**
    * @param {UploadEssayUseCase} uploadEssayUseCase - Use case de upload
+   * @param {GetStudentEssayByTaskUseCase} getStudentEssayByTaskUseCase - Use case busca redação
    */
-  constructor(uploadEssayUseCase) {
+  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase) {
     this.uploadEssayUseCase = uploadEssayUseCase;
+    this.getStudentEssayByTaskUseCase = getStudentEssayByTaskUseCase;
+
+    // Bind methods
+    this.upload = this.upload.bind(this);
+    this.getStudentEssayByTask = this.getStudentEssayByTask.bind(this);
   }
 
   /**
@@ -71,6 +77,50 @@ export class EssayController {
         data: {
           essay,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Buscar redação do aluno autenticado para uma tarefa
+   * GET /api/essays/task/:taskId/student
+   *
+   * @async
+   * @param {Request} req - Request do Express
+   * @param {Response} res - Response do Express
+   * @param {NextFunction} next - Next middleware
+   */
+  async getStudentEssayByTask(req, res, next) {
+    try {
+      const { taskId } = req.params;
+      const studentId = req.user.id;
+
+      // Validar que é um estudante
+      if (req.user.userType !== 'student') {
+        return res.status(403).json({
+          success: false,
+          error: 'Apenas alunos podem acessar este recurso',
+        });
+      }
+
+      const essay = await this.getStudentEssayByTaskUseCase.execute({
+        taskId,
+        studentId,
+      });
+
+      // Se não encontrou redação, retorna 404
+      if (!essay) {
+        return res.status(404).json({
+          success: false,
+          error: 'Você ainda não enviou redação para esta tarefa',
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        data: essay,
       });
     } catch (error) {
       next(error);

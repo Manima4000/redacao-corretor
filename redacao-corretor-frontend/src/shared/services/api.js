@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useAuthStore from '@/features/auth/store/authStore';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -37,9 +38,21 @@ api.interceptors.response.use(
 
     // Token expirado (401) - tenta refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Não tenta refresh se a requisição original já é de login/refresh
+      const isAuthEndpoint =
+        originalRequest.url?.includes('/auth/login') ||
+        originalRequest.url?.includes('/auth/register') ||
+        originalRequest.url?.includes('/auth/refresh');
+
+      if (isAuthEndpoint) {
+        return Promise.reject(error);
+      }
+
       originalRequest._retry = true;
 
       try {
+        console.log('[API] Token expirado, tentando refresh...');
+
         // Tenta refresh - refreshToken está no cookie httpOnly
         await axios.post(
           `${API_BASE_URL}/auth/refresh`,
@@ -47,12 +60,28 @@ api.interceptors.response.use(
           { withCredentials: true }
         );
 
+        console.log('[API] Refresh bem-sucedido, retentando requisição original');
+
         // Refresh bem-sucedido, tenta requisição original novamente
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh falhou - redireciona para login
-        // Limpa estado (será feito no AuthStore)
-        window.location.href = '/login';
+        console.error('[API] Refresh falhou, deslogando usuário:', refreshError);
+
+        // Refresh falhou - limpa estado e redireciona
+        // Usa getState() para acessar o store fora de um componente React
+        const { logout } = useAuthStore.getState();
+        logout();
+
+        // Limpa localStorage para garantir
+        localStorage.removeItem('auth-storage');
+
+        // Redireciona para login
+        // Verifica se já não está na página de login para evitar loop
+        if (!window.location.pathname.includes('/login')) {
+          console.log('[API] Redirecionando para /login');
+          window.location.href = '/login';
+        }
+
         return Promise.reject(refreshError);
       }
     }

@@ -26,17 +26,28 @@ Frontend do sistema de correção de redações, permitindo que:
 - **Professores:** Gerenciem turmas, criem tarefas, recebam redações e façam anotações com caneta de tablet
 - **Alunos:** Visualizem tarefas, enviem redações e recebam feedback
 
-### Features Implementadas (Fase 1 e 2)
+### Features Implementadas (Fase 1, 2 e 3)
 
+**Autenticação e Segurança:**
 - ✅ Autenticação com cookies httpOnly (mais seguro)
-- ✅ Sidebar com navegação e botões de retorno
+- ✅ Sistema de rotas protegidas (PrivateRoute + RequireTeacher)
+- ✅ Estado global com Zustand
+- ✅ Refresh token automático
+
+**Interface do Professor:**
 - ✅ Dashboard (placeholder)
-- ✅ CRUD de turmas para professores
+- ✅ CRUD de turmas
 - ✅ Listagem de Tarefas por Turma (Em Andamento / Encerradas)
 - ✅ Detalhes da Tarefa com Lista de Alunos (Entregas/Pendentes)
 - ✅ Estatísticas de Entrega (Total, Entregas, Pendentes, Taxa)
-- ✅ Sistema de rotas protegidas
-- ✅ Estado global com Zustand
+
+**Interface do Aluno:**
+- ✅ StudentHomePage - Visualização de tarefas pendentes e encerradas
+- ✅ Sidebar com menus específicos para alunos
+- ✅ Proteção de rotas de professores
+
+**Design:**
+- ✅ Sidebar com navegação e botões de retorno
 - ✅ Design responsivo com Tailwind CSS
 
 ---
@@ -67,6 +78,8 @@ src/
 │
 ├── features/                     # Features (domínios)
 │   ├── auth/                     # Autenticação
+│   │   ├── components/
+│   │   │   └── RequireTeacher.jsx # Proteção de rotas de professores
 │   │   ├── hooks/
 │   │   │   └── useAuth.js        # Hook para acessar AuthStore
 │   │   ├── services/
@@ -76,7 +89,7 @@ src/
 │   │   └── pages/
 │   │       └── LoginPage.jsx     # Página de login
 │   │
-│   ├── classes/                  # Gerenciamento de turmas
+│   ├── classes/                  # Gerenciamento de turmas (Professores)
 │   │   ├── components/
 │   │   │   └── ClassCard.jsx     # Card de turma
 │   │   ├── hooks/
@@ -88,17 +101,26 @@ src/
 │   │       ├── ClassesPage.jsx   # Página de turmas (grid + modal)
 │   │       └── ClassTasksPage.jsx# Detalhes da turma + Tarefas
 │   │
-│   ├── tasks/                    # Gerenciamento de tarefas
+│   ├── tasks/                    # Gerenciamento de tarefas (Professores)
 │   │   ├── components/
+│   │   │   ├── TaskCard.jsx      # Card de tarefa (professor)
 │   │   │   └── StudentListItem.jsx # Card de aluno com status
 │   │   ├── hooks/
 │   │   │   └── useTaskStudents.js # Hook para buscar alunos da tarefa
 │   │   ├── services/
-│   │   │   └── taskService.js    # API calls
+│   │   │   └── taskService.js    # API calls (getTasksByClass, etc)
 │   │   └── pages/
-│   │       └── TaskStudentsPage.jsx # Detalhes da tarefa + Lista de alunos  
+│   │       └── TaskStudentsPage.jsx # Detalhes da tarefa + Lista de alunos
 │   │
-│   ├── dashboard/
+│   ├── students/                 # Interface do Aluno
+│   │   ├── components/
+│   │   │   └── StudentTaskCard.jsx # Card de tarefa (aluno)
+│   │   ├── hooks/
+│   │   │   └── useStudentTasks.js # Hook para buscar tarefas do aluno
+│   │   └── pages/
+│   │       └── StudentHomePage.jsx # Home do aluno (tarefas pendentes/encerradas)
+│   │
+│   ├── dashboard/                # Dashboard (Professores)
 │   │   └── pages/
 │   │       └── DashboardPage.jsx # Dashboard (placeholder)
 │   │
@@ -319,31 +341,52 @@ const useAuthStore = create(
 | `/login` | LoginPage | Login de aluno/professor |
 | `/register` | RegisterPage | Registro (futura implementação) |
 
-### Rotas Privadas (Requer autenticação)
+### Rotas Privadas - Alunos (Auth Required)
 
-| Rota | Componente | Proteção | Descrição |
-|------|------------|----------|-----------|
-| `/dashboard` | DashboardPage | Auth | Dashboard com estatísticas |
-| `/classes` | ClassesPage | Auth + Teacher | Listagem de turmas |
-| `/classes/:id` | ClassTasksPage | Auth + Teacher | Tarefas da turma (Em Andamento/Encerradas) |
-| `/classes/:classId/tasks/:taskId` | TaskStudentsPage | Auth + Teacher | Detalhes da tarefa + Lista de alunos |
-| `/profile` | ProfilePage | Auth | Perfil do usuário (futuro) |
+| Rota | Componente | Descrição |
+|------|------------|-----------|
+| `/` | StudentHomePage | Home do aluno - Tarefas pendentes e encerradas |
+| `/tasks/:taskId` | TaskDetailPage | Detalhes da tarefa + Upload de redação (futuro) |
+| `/profile` | ProfilePage | Perfil do usuário (futuro) |
+
+### Rotas Privadas - Professores (Auth + Teacher Required)
+
+| Rota | Componente | Descrição |
+|------|------------|-----------|
+| `/dashboard` | DashboardPage | Dashboard com estatísticas |
+| `/classes` | ClassesPage | Listagem de turmas |
+| `/classes/:id` | ClassTasksPage | Tarefas da turma (Em Andamento/Encerradas) |
+| `/classes/:classId/tasks/:taskId` | TaskStudentsPage | Detalhes da tarefa + Lista de alunos |
 
 ### Proteção de Rotas
 
+**PrivateRoute** - Requer autenticação:
 ```javascript
 // src/app/router/PrivateRoute.jsx
-export const PrivateRoute = ({ children, requireTeacher = false }) => {
-  const { isAuthenticated, user } = useAuth();
+export const PrivateRoute = ({ children }) => {
+  const { isAuthenticated } = useAuth();
 
-  // Não autenticado → redireciona para /login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Requer professor mas é aluno → redireciona para /dashboard
-  if (requireTeacher && user?.type !== 'teacher') {
-    return <Navigate to="/dashboard" replace />;
+  return children;
+};
+```
+
+**RequireTeacher** - Requer ser professor:
+```javascript
+// src/features/auth/components/RequireTeacher.jsx
+export const RequireTeacher = ({ children }) => {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Aluno tentando acessar rota de professor → redireciona para home
+  if (user.type !== 'teacher') {
+    return <Navigate to="/" replace />;
   }
 
   return children;
@@ -352,17 +395,37 @@ export const PrivateRoute = ({ children, requireTeacher = false }) => {
 
 **Uso:**
 ```jsx
+// Rota de aluno (apenas autenticação)
 <Route
-  path="/classes"
+  path="/"
   element={
-    <PrivateRoute requireTeacher={true}>
+    <PrivateRoute>
       <MainLayout>
-        <ClassesPage />
+        <StudentHomePage />
       </MainLayout>
     </PrivateRoute>
   }
 />
+
+// Rota de professor (autenticação + RequireTeacher)
+<Route
+  path="/classes"
+  element={
+    <PrivateRoute>
+      <RequireTeacher>
+        <MainLayout>
+          <ClassesPage />
+        </MainLayout>
+      </RequireTeacher>
+    </PrivateRoute>
+  }
+/>
 ```
+
+**Redirecionamento Inteligente:**
+- Login → Professor: `/dashboard`, Aluno: `/`
+- Aluno tenta acessar `/classes` → Redireciona para `/`
+- Não autenticado → Redireciona para `/login`
 
 ---
 
@@ -407,9 +470,30 @@ Menu lateral fixo com navegação e logout.
 
 **Features:**
 - Detecta tipo de usuário (Professor/Aluno)
+- **Menus diferentes por tipo:**
+  - **Professores:** Dashboard, Turmas, Perfil
+  - **Alunos:** Minhas Tarefas, Perfil
 - Navegação com NavLink (destaque na rota ativa)
 - Botão de logout com confirmação
 - Design responsivo
+
+**Implementação:**
+```javascript
+const menuItems = [
+  { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: '📊', teacherOnly: true },
+  { label: 'Turmas', path: ROUTES.CLASSES, icon: '👥', teacherOnly: true },
+  { label: 'Minhas Tarefas', path: ROUTES.HOME, icon: '📝', studentOnly: true },
+  { label: 'Perfil', path: ROUTES.PROFILE, icon: '⚙️', show: true }, // Todos
+];
+
+// Filtra baseado no tipo
+const filteredMenuItems = menuItems.filter((item) => {
+  if (item.show) return true;
+  if (item.teacherOnly) return isTeacher();
+  if (item.studentOnly) return !isTeacher();
+  return false;
+});
+```
 
 ### MainLayout
 
@@ -555,28 +639,41 @@ teachers (1) ──────< (N) classes
 
 ## Próximas Implementações
 
-### Fase 2 - Tasks ✅ COMPLETA
-- [x] Página de detalhes da turma
-- [x] CRUD de tarefas
-- [x] Listagem de tasks separada: "Em Andamento" / "Concluídas"
+### Fase 1 - Auth & Dashboard ✅ COMPLETA
+- [x] Autenticação com cookies httpOnly
+- [x] Sistema de rotas protegidas
+- [x] Dashboard placeholder
+- [x] Estado global com Zustand
+
+### Fase 2 - Turmas & Tarefas (Professor) ✅ COMPLETA
+- [x] CRUD de turmas
+- [x] Listagem de tarefas por turma
 - [x] Página de detalhes da tarefa com lista de alunos
-- [x] Estatísticas de entrega (Total, Entregas, Pendentes, Taxa)
-- [x] Separação visual: Entregas Realizadas vs Pendentes
+- [x] Estatísticas de entrega
+- [x] Separação visual: Entregas vs Pendentes
 
-### Fase 3 - Essays (EM ANDAMENTO)
-- [ ] Integração com Google Drive para storage de imagens
-- [ ] Validação de arquivos (tipo, tamanho, metadados)
-- [ ] Upload de redações (JPEG, PNG, PDF)
-- [ ] Preview de redações
-- [ ] Atualização de status de entrega em tempo real
+### Fase 3 - Interface do Aluno ✅ COMPLETA
+- [x] StudentHomePage com tarefas pendentes/encerradas
+- [x] Sidebar com menus específicos para alunos
+- [x] Proteção de rotas (RequireTeacher)
+- [x] Hook useStudentTasks seguindo SOLID
+- [x] Backend endpoint GET /api/tasks/class/:classId
 
-### Fase 4 - Annotations
+### Fase 4 - Upload de Redações (EM ANDAMENTO)
+- [x] Integração com Google Drive no backend
+- [x] Validação de arquivos (tipo, tamanho, metadados)
+- [ ] **Página de detalhes da tarefa para aluno**
+- [ ] **Componente de upload de redações**
+- [ ] Preview de redações enviadas
+- [ ] Status de entrega em tempo real
+
+### Fase 5 - Annotations
 - [ ] Integrar AnnotationDemo com essays
 - [ ] Toolbar de anotações (cores, espessuras)
 - [ ] Salvar anotações no backend
 - [ ] Exportar redações corrigidas
 
-### Fase 5 - Real-time
+### Fase 6 - Real-time
 - [ ] Socket.io para notificações
 - [ ] Chat entre professor e aluno
 - [ ] Notificações de novas tarefas/correções
@@ -636,6 +733,6 @@ Ao fazer mudanças:
 
 ---
 
-**Última atualização:** 2025-12-16
-**Versão:** 1.0.0
-**Status:** ✅ Fase 1 Completa (Auth + Dashboard + Turmas)
+**Última atualização:** 2025-12-17
+**Versão:** 1.2.0
+**Status:** ✅ Fase 1, 2, 3 Completas | 🚧 Fase 4 Em Andamento (Upload de Redações)
