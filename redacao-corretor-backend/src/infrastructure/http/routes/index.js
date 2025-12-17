@@ -3,6 +3,7 @@ import authRoutes from './auth.routes.js';
 import classRoutes from './classes.routes.js';
 import taskRoutes from './tasks.routes.js';
 import essayRoutes from './essays.routes.js';
+import annotationRoutes from './annotations.routes.js';
 import testRoutes from './test.routes.js';
 import studentRoutes from './students.routes.js';
 
@@ -16,6 +17,7 @@ router.use('/classes', classRoutes);
 router.use('/students', studentRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/essays', essayRoutes);
+router.use('/essays', annotationRoutes); // Sub-rotas: /essays/:essayId/annotations
 
 // Rotas de teste (apenas para desenvolvimento)
 if (process.env.NODE_ENV === 'development') {

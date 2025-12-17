@@ -11,6 +11,7 @@ export async function up(query) {
 
     CREATE INDEX idx_annotations_essay_id ON annotations(essay_id);
     CREATE INDEX idx_annotations_page_number ON annotations(page_number);
+    CREATE UNIQUE INDEX idx_annotations_essay_page ON annotations(essay_id, page_number);
   `);
 
   console.log('Tabela annotations criada com sucesso!');
