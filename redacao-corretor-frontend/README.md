@@ -2,7 +2,7 @@
 
 > Sistema web para correção de redações com anotações digitais usando caneta de tablet
 
-**Stack:** React 19 + Vite + Tailwind CSS + Zustand + React Router + Axios
+**Stack:** React 19 + Vite + Tailwind CSS + Zustand + React Router + Axios + Konva + Perfect-Freehand
 
 ---
 
@@ -13,6 +13,9 @@
 - [Estrutura do Projeto](#estrutura-do-projeto)
 - [Setup e Instalação](#setup-e-instalação)
 - [Autenticação com Cookies HttpOnly](#autenticação-com-cookies-httponly)
+- [Sistema de Anotações](#sistema-de-anotações)
+- [Upload de Redações](#upload-de-redações)
+- [Sistema de Toast](#sistema-de-toast)
 - [Rotas e Navegação](#rotas-e-navegação)
 - [Componentes Principais](#componentes-principais)
 - [Docker](#docker)
@@ -24,31 +27,58 @@
 
 Frontend do sistema de correção de redações, permitindo que:
 - **Professores:** Gerenciem turmas, criem tarefas, recebam redações e façam anotações com caneta de tablet
-- **Alunos:** Visualizem tarefas, enviem redações e recebam feedback
+- **Alunos:** Visualizem tarefas, enviem redações (fotos/PDFs) e recebam feedback com anotações
 
-### Features Implementadas (Fase 1, 2 e 3)
+### Features Implementadas
 
-**Autenticação e Segurança:**
-- ✅ Autenticação com cookies httpOnly (mais seguro)
-- ✅ Sistema de rotas protegidas (PrivateRoute + RequireTeacher)
-- ✅ Estado global com Zustand
-- ✅ Refresh token automático
+**✅ Fase 1 - Autenticação e Segurança**
+- Autenticação com cookies httpOnly (mais seguro que localStorage)
+- Sistema de rotas protegidas (PrivateRoute + RequireTeacher)
+- Estado global com Zustand (auth + toast)
+- Refresh token automático
+- Logout com limpeza de cookies
 
-**Interface do Professor:**
-- ✅ Dashboard (placeholder)
-- ✅ CRUD de turmas
-- ✅ Listagem de Tarefas por Turma (Em Andamento / Encerradas)
-- ✅ Detalhes da Tarefa com Lista de Alunos (Entregas/Pendentes)
-- ✅ Estatísticas de Entrega (Total, Entregas, Pendentes, Taxa)
+**✅ Fase 2 - Interface do Professor**
+- Dashboard (placeholder)
+- CRUD de turmas
+- Listagem de Tarefas por Turma (Em Andamento / Encerradas)
+- Detalhes da Tarefa com Lista de Alunos (Entregas/Pendentes)
+- Estatísticas de Entrega (Total, Entregas, Pendentes, Taxa)
 
-**Interface do Aluno:**
-- ✅ StudentHomePage - Visualização de tarefas pendentes e encerradas
-- ✅ Sidebar com menus específicos para alunos
-- ✅ Proteção de rotas de professores
+**✅ Fase 3 - Interface do Aluno**
+- StudentHomePage - Visualização de tarefas pendentes e concluídas
+- Tarefas movem automaticamente para "Concluídas" após envio
+- Status visual com ícones Bootstrap Icons
+- Sidebar com menus específicos para alunos
+- Proteção de rotas de professores
 
-**Design:**
-- ✅ Sidebar com navegação e botões de retorno
-- ✅ Design responsivo com Tailwind CSS
+**✅ Fase 4 - Upload de Redações**
+- Componente UploadEssayForm com drag & drop
+- Suporte a JPEG, PNG e PDF (máx 10MB)
+- Preview de arquivos antes do upload
+- Integração com Google Drive (backend)
+- Visualização de redações enviadas
+- Delete com modal de confirmação
+- Sistema de status (pending, correcting, corrected)
+
+**✅ Fase 5 - Sistema de Anotações (COMPLETO)**
+- **EssayAnnotator** - Componente de anotação completo
+- **Detecção de stylus** - Caneta desenha, dedo faz pan
+- **Perfect-freehand** - Rabiscos realistas com pressão
+- **Zoom e Pan** - Pinch zoom + controles de zoom
+- **Toolbar** - Cores, tamanhos, borracha, desfazer, limpar
+- **Auto-save** - Salva automaticamente (desabilitado por padrão)
+- **Save manual** - Botão de salvar com feedback visual
+- **Finalizar correção** - Muda status para "corrected"
+- **Read-only mode** - Alunos visualizam anotações sem editar
+- **Proxy de imagens** - Contorna CORS do Google Drive
+
+**✅ UX e Componentes**
+- Sistema de Toast com Zustand (success, error, warning, info)
+- ConfirmationModal reutilizável (substitui alerts nativos)
+- Design responsivo com Tailwind CSS
+- Bootstrap Icons para ícones
+- Loading states e spinners
 
 ---
 
@@ -62,8 +92,10 @@ Frontend do sistema de correção de redações, permitindo que:
 | React Router DOM | 7.10.1 | Roteamento SPA |
 | Zustand | 5.0.9 | Estado global (leve) |
 | Axios | 1.13.2 | HTTP client |
-| Konva + React-Konva | 10.0.12 / 19.2.1 | Canvas 2D (anotações) |
-| Perfect-Freehand | 1.2.2 | Desenho suave de anotações |
+| React-Konva | 19.2.1 | Canvas 2D para anotações |
+| Konva | 10.0.12 | Engine de canvas performático |
+| Perfect-Freehand | 1.2.2 | Desenho suave com simulação de pressão |
+| Bootstrap Icons | 1.11.3 | Ícones |
 
 ---
 
@@ -79,73 +111,91 @@ src/
 ├── features/                     # Features (domínios)
 │   ├── auth/                     # Autenticação
 │   │   ├── components/
-│   │   │   └── RequireTeacher.jsx # Proteção de rotas de professores
+│   │   │   └── RequireTeacher.jsx
 │   │   ├── hooks/
-│   │   │   └── useAuth.js        # Hook para acessar AuthStore
+│   │   │   └── useAuth.js
 │   │   ├── services/
-│   │   │   └── authService.js    # API calls (login, logout, refresh)
+│   │   │   └── authService.js
 │   │   ├── store/
-│   │   │   └── authStore.js      # Zustand store (apenas user, sem tokens)
+│   │   │   └── authStore.js      # Zustand (user, isAuthenticated)
 │   │   └── pages/
-│   │       └── LoginPage.jsx     # Página de login
+│   │       └── LoginPage.jsx
 │   │
 │   ├── classes/                  # Gerenciamento de turmas (Professores)
 │   │   ├── components/
-│   │   │   └── ClassCard.jsx     # Card de turma
+│   │   │   └── ClassCard.jsx
 │   │   ├── hooks/
-│   │   │   ├── useClasses.js     # Hook para buscar turmas
-│   │   │   └── useClassDetails.js  # Hook para detalhes da turma
+│   │   │   └── useClasses.js
 │   │   ├── services/
-│   │   │   └── classService.js   # API calls
+│   │   │   └── classService.js
 │   │   └── pages/
-│   │       ├── ClassesPage.jsx   # Página de turmas (grid + modal)
-│   │       └── ClassTasksPage.jsx# Detalhes da turma + Tarefas
+│   │       ├── ClassesPage.jsx
+│   │       └── ClassTasksPage.jsx
 │   │
 │   ├── tasks/                    # Gerenciamento de tarefas (Professores)
 │   │   ├── components/
-│   │   │   ├── TaskCard.jsx      # Card de tarefa (professor)
-│   │   │   └── StudentListItem.jsx # Card de aluno com status
+│   │   │   ├── TaskCard.jsx
+│   │   │   └── StudentListItem.jsx
 │   │   ├── hooks/
-│   │   │   └── useTaskStudents.js # Hook para buscar alunos da tarefa
+│   │   │   └── useTaskStudents.js
 │   │   ├── services/
-│   │   │   └── taskService.js    # API calls (getTasksByClass, etc)
+│   │   │   └── taskService.js
 │   │   └── pages/
-│   │       └── TaskStudentsPage.jsx # Detalhes da tarefa + Lista de alunos
+│   │       └── TaskStudentsPage.jsx
+│   │
+│   ├── essays/                   # Redações
+│   │   ├── components/
+│   │   │   └── UploadEssayForm.jsx # Upload com drag & drop
+│   │   ├── services/
+│   │   │   └── essayService.js     # API de redações
+│   │   └── pages/
+│   │       ├── EssayCorrectPage.jsx  # Correção (Professor)
+│   │       └── EssayViewPage.jsx     # Visualização (Aluno)
+│   │
+│   ├── annotations/              # ⭐ Sistema de anotações
+│   │   ├── components/
+│   │   │   ├── EssayAnnotator.jsx    # Canvas principal (produção)
+│   │   │   └── ToolbarAnnotation.jsx # Toolbar de ferramentas
+│   │   ├── hooks/
+│   │   │   ├── useStylus.js          # Detecção de caneta/dedo/mouse
+│   │   │   ├── useCanvasZoom.js      # Zoom e pan
+│   │   │   └── useAnnotations.js     # Estado e API de anotações
+│   │   ├── services/
+│   │   │   └── annotationService.js  # API de anotações
+│   │   └── utils/
+│   │       └── freehandHelper.js     # Helper perfect-freehand
 │   │
 │   ├── students/                 # Interface do Aluno
 │   │   ├── components/
-│   │   │   └── StudentTaskCard.jsx # Card de tarefa (aluno)
+│   │   │   └── StudentTaskCard.jsx   # Card com badges de status
 │   │   ├── hooks/
-│   │   │   └── useStudentTasks.js # Hook para buscar tarefas do aluno
+│   │   │   ├── useStudentTasks.js    # Separa pendentes/concluídas
+│   │   │   └── useTaskDetail.js      # Detalhes da tarefa
 │   │   └── pages/
-│   │       └── StudentHomePage.jsx # Home do aluno (tarefas pendentes/encerradas)
+│   │       ├── StudentHomePage.jsx   # Home com tarefas
+│   │       └── TaskDetailPage.jsx    # Detalhes + Upload
 │   │
-│   ├── dashboard/                # Dashboard (Professores)
-│   │   └── pages/
-│   │       └── DashboardPage.jsx # Dashboard (placeholder)
-│   │
-│   └── annotations/              # Sistema de anotações
-│       ├── components/
-│       │   └── AnnotationDemo.jsx # Demo de anotações com Konva
-│       ├── hooks/
-│       │   ├── useStylus.js      # Detecção de caneta/touch/mouse
-│       │   └── useCanvasZoom.js  # Zoom e pan
-│       └── utils/
-│           └── freehandHelper.js # Utilitários perfect-freehand
+│   └── dashboard/                # Dashboard (Professores)
+│       └── pages/
+│           └── DashboardPage.jsx
 │
 └── shared/                       # Compartilhado
     ├── components/
     │   ├── layout/
-    │   │   ├── Sidebar.jsx       # Menu lateral fixo
-    │   │   └── MainLayout.jsx    # Layout com sidebar + content
+    │   │   ├── Sidebar.jsx           # Menu lateral com ícones
+    │   │   └── MainLayout.jsx        # Layout wrapper
     │   └── ui/
-    │       ├── Button.jsx        # Botão reutilizável (4 variants)
-    │       ├── Card.jsx          # Card reutilizável
-    │       └── Spinner.jsx       # Loading spinner
+    │       ├── Button.jsx            # Botão com variants
+    │       ├── Card.jsx              # Container
+    │       ├── Spinner.jsx           # Loading
+    │       ├── ConfirmationModal.jsx # ⭐ Modal de confirmação
+    │       └── ToastContainer.jsx    # ⭐ Sistema de notificações
+    ├── hooks/
+    │   └── useToast.js               # ⭐ Hook de toast (Zustand)
     ├── services/
-    │   └── api.js                # Instância Axios configurada
+    │   └── api.js                    # Axios com interceptors
     └── constants/
-        └── routes.js             # Constantes de rotas
+        └── routes.js                 # Constantes de rotas
 ```
 
 ### Padrão de Organização
@@ -154,16 +204,6 @@ src/
 - Cada feature é independente e auto-contida
 - Facilita escalabilidade e manutenção
 - Componentes compartilhados em `shared/`
-
-**Estrutura típica de uma feature:**
-```
-features/nome-da-feature/
-├── components/        # Componentes React específicos
-├── hooks/            # Custom hooks
-├── services/         # API calls
-├── pages/            # Páginas (rotas)
-└── utils/            # Funções utilitárias
-```
 
 ---
 
@@ -187,7 +227,8 @@ npm install
 
 # 3. Configure variáveis de ambiente
 cp .env.example .env.local
-# Edite .env.local e configure VITE_API_URL
+# Edite .env.local:
+# VITE_API_URL=http://localhost:3000/api
 
 # 4. Inicie o servidor de desenvolvimento
 npm run dev
@@ -197,14 +238,12 @@ npm run dev
 
 ### Variáveis de Ambiente
 
-Crie um arquivo `.env.local` na raiz do projeto:
-
+`.env.local`:
 ```env
-# URL da API backend
 VITE_API_URL=http://localhost:3000/api
 ```
 
-⚠️ **Importante:** Variáveis no Vite DEVEM começar com `VITE_` para serem expostas ao cliente.
+⚠️ **Importante:** Variáveis no Vite DEVEM começar com `VITE_`.
 
 ---
 
@@ -212,67 +251,49 @@ VITE_API_URL=http://localhost:3000/api
 
 ### Por Que Cookies HttpOnly?
 
-O sistema usa **cookies httpOnly** ao invés de localStorage para armazenar tokens JWT.
-
 **Vantagens:**
-- ✅ **Mais seguro:** Cookies httpOnly não podem ser acessados por JavaScript (previne XSS)
-- ✅ **Automático:** Browser envia cookies em todas as requisições automaticamente
-- ✅ **Flags de segurança:** `secure` (HTTPS), `sameSite=strict` (previne CSRF)
+- ✅ **Mais seguro:** Não acessível via JavaScript (previne XSS)
+- ✅ **Automático:** Browser envia em todas requisições
+- ✅ **Flags de segurança:** `secure`, `sameSite=strict`
 
 **Tokens:**
-- `accessToken` - 15 minutos (para requisições autenticadas)
-- `refreshToken` - 7 dias (para renovar accessToken)
+- `accessToken` - 15 minutos
+- `refreshToken` - 7 dias
 
-### Como Funciona
+### Fluxo de Autenticação
 
-**1. Login/Register:**
+**1. Login:**
 ```javascript
-// Frontend envia credenciais
 POST /api/auth/login
-{
-  "email": "professor@exemplo.com",
-  "password": "senha123"
-}
+Body: { email, password }
 
-// Backend responde:
+// Backend:
 // - Define cookies httpOnly (accessToken, refreshToken)
-// - Retorna apenas dados do usuário (SEM tokens no body)
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": "uuid",
-      "email": "professor@exemplo.com",
-      "fullName": "Nome Professor",
-      "type": "teacher"
-    }
+// - Retorna apenas dados do usuário
+
+Response: {
+  success: true,
+  data: {
+    user: { id, email, fullName, type }
   }
 }
-
-// Frontend salva user no Zustand
-// Tokens ficam nos cookies (inacessíveis via JS)
 ```
 
 **2. Requisições Autenticadas:**
 ```javascript
-// Frontend faz requisição
+// Axios configurado com withCredentials: true
 GET /api/classes
 
-// Axios envia cookies automaticamente (withCredentials: true)
+// Cookies enviados automaticamente:
 Cookie: accessToken=eyJhbGc...
-
-// Backend lê token do cookie
-// Valida e retorna dados
 ```
 
-**3. Refresh Token Automático:**
+**3. Refresh Automático:**
 ```javascript
-// 1. Token expira → API retorna 401
-// 2. Interceptor detecta 401
-// 3. Chama POST /api/auth/refresh (refreshToken no cookie)
-// 4. Backend define novo accessToken
-// 5. Retenta requisição original
-// 6. Se refresh falhar → redireciona para /login
+// Interceptor detecta 401
+// Chama POST /api/auth/refresh
+// Retenta requisição original
+// Se falhar → logout
 ```
 
 ### Configuração Axios
@@ -281,17 +302,14 @@ Cookie: accessToken=eyJhbGc...
 // src/shared/services/api.js
 const api = axios.create({
   baseURL: 'http://localhost:3000/api',
-  withCredentials: true, // ⚠️ CRUCIAL: Envia cookies
+  withCredentials: true, // ⚠️ CRUCIAL
 });
 
-// Response interceptor para refresh automático
 api.interceptors.response.use(
   response => response,
   async error => {
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Tenta refresh
       await axios.post('/auth/refresh', {}, { withCredentials: true });
-      // Retenta requisição original
       return api(originalRequest);
     }
     return Promise.reject(error);
@@ -299,36 +317,198 @@ api.interceptors.response.use(
 );
 ```
 
-### Zustand Store
+---
 
-**⚠️ IMPORTANTE:** O store NÃO armazena tokens (estão em cookies httpOnly).
+## Sistema de Anotações
 
-```javascript
-// src/features/auth/store/authStore.js
-const useAuthStore = create(
-  persist(
-    (set, get) => ({
-      user: null,              // Dados do usuário (não sensível)
-      isAuthenticated: false,  // Flag de autenticação
+### Visão Geral
 
-      // Actions
-      setUser: (user) => set({ user, isAuthenticated: true }),
-      logout: () => set({ user: null, isAuthenticated: false }),
+Sistema completo de anotações digitais com suporte a stylus/caneta de tablet.
 
-      // Helpers
-      isTeacher: () => get().user?.type === 'teacher',
-      isStudent: () => get().user?.type === 'student',
-    }),
-    { name: 'auth-storage' } // Persiste em localStorage
-  )
-);
+**Componentes:**
+- `EssayAnnotator` - Canvas principal com desenho
+- `ToolbarAnnotation` - Ferramentas (cores, tamanhos, etc)
+- `useAnnotations` - Hook de estado e API
+- `useStylus` - Detecção de caneta vs dedo
+- `useCanvasZoom` - Zoom e pan
+
+### Features
+
+**✅ Detecção de Entrada:**
+- Caneta/Stylus → Desenha
+- Dedo → Pan (quando em zoom)
+- Mouse → Desenha (desktop)
+
+**✅ Ferramentas:**
+- 4 Cores (vermelho, azul, verde, amarelo)
+- 3 Tamanhos (fino, médio, grosso)
+- Borracha
+- Desfazer última linha
+- Limpar tudo (com confirmação)
+
+**✅ Zoom e Pan:**
+- Botões +/- para zoom
+- Pinch zoom (dois dedos)
+- Pan com dedo (quando zoom > 1x)
+- Reset zoom
+
+**✅ Persistência:**
+- Salvar manual com botão
+- Auto-save a cada 5s (desabilitado)
+- Carrega anotações ao abrir
+- Formato JSONB no backend
+
+**✅ Finalização:**
+- Botão "Finalizar Correção"
+- Salva anotações
+- Muda status da redação para "corrected"
+- Redireciona para lista de alunos
+
+### Uso
+
+**Professor - Corrigir Redação:**
+```jsx
+<EssayCorrectPage />
+  └── <EssayAnnotator
+        essayId={essayId}
+        imageUrl={proxyUrl}
+        onFinish={handleFinish}
+      />
 ```
 
-**O que é persistido:**
-- ✅ `user` - Dados públicos do usuário
-- ✅ `isAuthenticated` - Flag booleana
-- ❌ `accessToken` - NÃO (está em cookie httpOnly)
-- ❌ `refreshToken` - NÃO (está em cookie httpOnly)
+**Aluno - Visualizar Correção:**
+```jsx
+<EssayViewPage />
+  └── <EssayAnnotator
+        essayId={essayId}
+        imageUrl={proxyUrl}
+        readOnly={true}
+      />
+```
+
+### Formato de Dados
+
+Anotações salvas como JSONB no PostgreSQL:
+
+```json
+{
+  "version": "1.0",
+  "lines": [
+    {
+      "points": [[x, y, pressure], ...],
+      "color": "#EF4444",
+      "size": 4
+    }
+  ]
+}
+```
+
+### Proxy de Imagens
+
+Para contornar CORS do Google Drive:
+
+```javascript
+// Backend endpoint
+GET /api/essays/:essayId/image
+
+// Baixa arquivo do Google Drive
+// Retorna buffer com Content-Type correto
+```
+
+```javascript
+// Frontend
+const imageUrl = `${apiUrl}/essays/${essayId}/image`;
+
+// Cria blob URL para exibir:
+const response = await fetch(imageUrl, { credentials: 'include' });
+const blob = await response.blob();
+const blobUrl = URL.createObjectURL(blob);
+```
+
+---
+
+## Upload de Redações
+
+### Componente UploadEssayForm
+
+**Features:**
+- Drag & drop de arquivos
+- Suporte a JPEG, PNG, PDF
+- Máximo 10MB
+- Preview antes do upload
+- Validação de tipo e tamanho
+- Loading state
+- Toast de sucesso/erro
+
+**Uso:**
+```jsx
+<UploadEssayForm
+  taskId={taskId}
+  onUploadSuccess={() => {
+    // Atualiza lista
+  }}
+/>
+```
+
+### TaskDetailPage (Aluno)
+
+**Features:**
+- Exibe detalhes da tarefa
+- Mostra prazo e status
+- Upload de redação (se prazo aberto)
+- Badge visual: "Redação Enviada" com ícone verde
+- Botão "Ver Correção" (se corrigida)
+- Botão "Visualizar Original"
+- Botão "Deletar e reenviar" (se pending)
+- Modal de confirmação para delete
+
+**Status Automático:**
+- Tarefa pendente → Aluno não enviou E prazo aberto
+- Tarefa concluída → Aluno enviou OU prazo encerrado
+
+---
+
+## Sistema de Toast
+
+### Zustand Store
+
+```javascript
+// src/shared/hooks/useToast.js
+export const useToast = () => {
+  return {
+    success: (message, duration) => { /* ... */ },
+    error: (message, duration) => { /* ... */ },
+    warning: (message, duration) => { /* ... */ },
+    info: (message, duration) => { /* ... */ },
+  };
+};
+```
+
+### Uso
+
+```javascript
+const toast = useToast();
+
+// Sucesso
+toast.success('Anotações salvas!');
+
+// Erro
+toast.error('Erro ao salvar');
+
+// Com duração customizada
+toast.success('Feito!', 5000);
+```
+
+### ToastContainer
+
+Renderizado em `App.jsx`:
+
+```jsx
+<App>
+  <AppRouter />
+  <ToastContainer />
+</App>
+```
 
 ---
 
@@ -339,249 +519,147 @@ const useAuthStore = create(
 | Rota | Componente | Descrição |
 |------|------------|-----------|
 | `/login` | LoginPage | Login de aluno/professor |
-| `/register` | RegisterPage | Registro (futura implementação) |
 
-### Rotas Privadas - Alunos (Auth Required)
-
-| Rota | Componente | Descrição |
-|------|------------|-----------|
-| `/` | StudentHomePage | Home do aluno - Tarefas pendentes e encerradas |
-| `/tasks/:taskId` | TaskDetailPage | Detalhes da tarefa + Upload de redação (futuro) |
-| `/profile` | ProfilePage | Perfil do usuário (futuro) |
-
-### Rotas Privadas - Professores (Auth + Teacher Required)
+### Rotas Privadas - Alunos
 
 | Rota | Componente | Descrição |
 |------|------------|-----------|
-| `/dashboard` | DashboardPage | Dashboard com estatísticas |
+| `/` | StudentHomePage | Tarefas pendentes/concluídas |
+| `/tasks/:taskId` | TaskDetailPage | Detalhes + Upload |
+| `/essays/:essayId/view` | EssayViewPage | ⭐ Visualizar correção (read-only) |
+
+### Rotas Privadas - Professores
+
+| Rota | Componente | Descrição |
+|------|------------|-----------|
+| `/dashboard` | DashboardPage | Dashboard |
 | `/classes` | ClassesPage | Listagem de turmas |
-| `/classes/:id` | ClassTasksPage | Tarefas da turma (Em Andamento/Encerradas) |
-| `/classes/:classId/tasks/:taskId` | TaskStudentsPage | Detalhes da tarefa + Lista de alunos |
+| `/classes/:id` | ClassTasksPage | Tarefas da turma |
+| `/classes/:classId/tasks/:taskId` | TaskStudentsPage | Alunos da tarefa |
+| `/essays/:essayId/correct` | EssayCorrectPage | ⭐ Corrigir redação (fullscreen) |
 
 ### Proteção de Rotas
 
-**PrivateRoute** - Requer autenticação:
-```javascript
-// src/app/router/PrivateRoute.jsx
-export const PrivateRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-```
-
-**RequireTeacher** - Requer ser professor:
-```javascript
-// src/features/auth/components/RequireTeacher.jsx
-export const RequireTeacher = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Aluno tentando acessar rota de professor → redireciona para home
-  if (user.type !== 'teacher') {
-    return <Navigate to="/" replace />;
-  }
-
-  return children;
-};
-```
-
-**Uso:**
 ```jsx
 // Rota de aluno (apenas autenticação)
-<Route
-  path="/"
-  element={
-    <PrivateRoute>
-      <MainLayout>
-        <StudentHomePage />
-      </MainLayout>
-    </PrivateRoute>
-  }
-/>
+<Route path="/" element={
+  <PrivateRoute>
+    <MainLayout>
+      <StudentHomePage />
+    </MainLayout>
+  </PrivateRoute>
+} />
 
 // Rota de professor (autenticação + RequireTeacher)
-<Route
-  path="/classes"
-  element={
-    <PrivateRoute>
-      <RequireTeacher>
-        <MainLayout>
-          <ClassesPage />
-        </MainLayout>
-      </RequireTeacher>
-    </PrivateRoute>
-  }
-/>
+<Route path="/essays/:essayId/correct" element={
+  <PrivateRoute>
+    <RequireTeacher>
+      <EssayCorrectPage />
+    </RequireTeacher>
+  </PrivateRoute>
+} />
 ```
-
-**Redirecionamento Inteligente:**
-- Login → Professor: `/dashboard`, Aluno: `/`
-- Aluno tenta acessar `/classes` → Redireciona para `/`
-- Não autenticado → Redireciona para `/login`
 
 ---
 
 ## Componentes Principais
 
-### Button
+### ConfirmationModal
 
-Botão reutilizável com variants e loading state.
+Modal reutilizável para confirmações (substitui `window.confirm`).
 
 **Props:**
-- `variant`: `'primary' | 'secondary' | 'danger' | 'ghost'`
-- `size`: `'sm' | 'md' | 'lg'`
-- `isLoading`: boolean
-- `disabled`: boolean
+- `isOpen` - boolean
+- `onClose` - function
+- `onConfirm` - function
+- `title` - string
+- `message` - string
+- `confirmText` - string (default: "Confirmar")
+- `cancelText` - string (default: "Cancelar")
+- `variant` - 'danger' | 'primary' | 'success'
+- `isLoading` - boolean
 
 **Exemplo:**
 ```jsx
-<Button variant="primary" size="md" isLoading={false}>
-  Enviar
+const [showModal, setShowModal] = useState(false);
+
+<ConfirmationModal
+  isOpen={showModal}
+  onClose={() => setShowModal(false)}
+  onConfirm={handleDelete}
+  title="Deletar Redação"
+  message="Esta ação não pode ser desfeita."
+  confirmText="Deletar"
+  variant="danger"
+  isLoading={isDeleting}
+/>
+```
+
+### Button
+
+Botão com variants, loading state e ícones.
+
+**Props:**
+- `variant` - 'primary' | 'secondary' | 'danger' | 'ghost' | 'success'
+- `size` - 'sm' | 'md' | 'lg'
+- `isLoading` - boolean
+- `disabled` - boolean
+
+**Exemplo:**
+```jsx
+<Button variant="primary" isLoading={isSaving}>
+  <i className="bi bi-save" /> Salvar
 </Button>
 ```
 
-### Card
+### StudentTaskCard
 
-Container com sombra e bordas arredondadas.
+Card de tarefa com badges visuais.
 
-**Props:**
-- `onClick`: function (opcional, torna clicável)
-- `className`: string (classes adicionais)
-
-**Exemplo:**
-```jsx
-<Card onClick={() => navigate('/details')}>
-  <h3>Título</h3>
-  <p>Conteúdo</p>
-</Card>
-```
-
-### Sidebar
-
-Menu lateral fixo com navegação e logout.
-
-**Features:**
-- Detecta tipo de usuário (Professor/Aluno)
-- **Menus diferentes por tipo:**
-  - **Professores:** Dashboard, Turmas, Perfil
-  - **Alunos:** Minhas Tarefas, Perfil
-- Navegação com NavLink (destaque na rota ativa)
-- Botão de logout com confirmação
-- Design responsivo
-
-**Implementação:**
-```javascript
-const menuItems = [
-  { label: 'Dashboard', path: ROUTES.DASHBOARD, icon: '📊', teacherOnly: true },
-  { label: 'Turmas', path: ROUTES.CLASSES, icon: '👥', teacherOnly: true },
-  { label: 'Minhas Tarefas', path: ROUTES.HOME, icon: '📝', studentOnly: true },
-  { label: 'Perfil', path: ROUTES.PROFILE, icon: '⚙️', show: true }, // Todos
-];
-
-// Filtra baseado no tipo
-const filteredMenuItems = menuItems.filter((item) => {
-  if (item.show) return true;
-  if (item.teacherOnly) return isTeacher();
-  if (item.studentOnly) return !isTeacher();
-  return false;
-});
-```
-
-### MainLayout
-
-Layout wrapper que adiciona Sidebar + área de conteúdo.
+**Badges:**
+- ⚠️ Prazo encerrando em breve (laranja)
+- ✅ Redação Enviada (verde)
+- ❌ Prazo encerrado (vermelho/cinza)
 
 **Exemplo:**
 ```jsx
-<MainLayout>
-  <YourPageContent />
-</MainLayout>
+<StudentTaskCard
+  task={task}
+  isPending={!task.hasSubmitted && deadlineOpen}
+/>
 ```
 
 ---
 
 ## Docker
 
-### Dockerfile (Produção)
+### Dockerfile
 
 ```dockerfile
-# Build stage
 FROM node:18-alpine as build
-
 WORKDIR /app
-
 COPY package*.json ./
 RUN npm ci
-
 COPY . .
 RUN npm run build
 
-# Production stage
 FROM nginx:alpine
-
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
 EXPOSE 80
-
 CMD ["nginx", "-g", "daemon off;"]
 ```
 
 ### Docker Compose
 
-```yaml
-version: '3.8'
-
-services:
-  postgres:
-    image: postgres:15-alpine
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: ""
-      POSTGRES_USER: ""
-      POSTGRES_PASSWORD: ""
-
-  backend:
-    build: ./redacao-corretor-backend
-    ports:
-      - "3000:3000"
-    depends_on:
-      - postgres
-    environment:
-      DATABASE_URL: ""
-
-  frontend:
-    build: ./redacao-corretor-frontend
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    environment:
-      VITE_API_URL: http://localhost:3000/api
-```
-
-**Comandos:**
 ```bash
 # Subir todos os serviços
 docker-compose up
 
-# Rebuild após mudanças
+# Rebuild
 docker-compose up --build
 
 # Parar
 docker-compose down
-
-# Ver logs
-docker-compose logs -f frontend
 ```
 
 ---
@@ -604,135 +682,64 @@ npm run lint
 
 ---
 
-## Estrutura de Dados do Backend
-
-### User Types
-
-O sistema usa entidades **separadas** (não há campo `role`):
-- ✅ `Student` (tabela `students`)
-- ✅ `Teacher` (tabela `teachers`)
-- ❌ `User` com `role` - NÃO EXISTE!
-
-**JWT Payload:**
-```javascript
-{
-  id: "uuid",
-  email: "user@exemplo.com",
-  userType: "teacher", // ou "student"
-  tokenType: "access"
-}
-```
-
-### Relacionamentos
-
-```
-teachers (1) ──────< (N) classes
-                           │
-                           ├──< (N) students
-                           │
-                           └──< (N) tasks
-                                    │
-                                    └──< (N) essays ──< (N) annotations
-```
-
----
-
-## Próximas Implementações
-
-### Fase 1 - Auth & Dashboard ✅ COMPLETA
-- [x] Autenticação com cookies httpOnly
-- [x] Sistema de rotas protegidas
-- [x] Dashboard placeholder
-- [x] Estado global com Zustand
-
-### Fase 2 - Turmas & Tarefas (Professor) ✅ COMPLETA
-- [x] CRUD de turmas
-- [x] Listagem de tarefas por turma
-- [x] Página de detalhes da tarefa com lista de alunos
-- [x] Estatísticas de entrega
-- [x] Separação visual: Entregas vs Pendentes
-
-### Fase 3 - Interface do Aluno ✅ COMPLETA
-- [x] StudentHomePage com tarefas pendentes/encerradas
-- [x] Sidebar com menus específicos para alunos
-- [x] Proteção de rotas (RequireTeacher)
-- [x] Hook useStudentTasks seguindo SOLID
-- [x] Backend endpoint GET /api/tasks/class/:classId
-
-### Fase 4 - Upload de Redações (EM ANDAMENTO)
-- [x] Integração com Google Drive no backend
-- [x] Validação de arquivos (tipo, tamanho, metadados)
-- [ ] **Página de detalhes da tarefa para aluno**
-- [ ] **Componente de upload de redações**
-- [ ] Preview de redações enviadas
-- [ ] Status de entrega em tempo real
-
-### Fase 5 - Annotations
-- [ ] Integrar AnnotationDemo com essays
-- [ ] Toolbar de anotações (cores, espessuras)
-- [ ] Salvar anotações no backend
-- [ ] Exportar redações corrigidas
-
-### Fase 6 - Real-time
-- [ ] Socket.io para notificações
-- [ ] Chat entre professor e aluno
-- [ ] Notificações de novas tarefas/correções
-
----
-
 ## Troubleshooting
 
 ### CORS Error
 
-**Problema:** `Access to XMLHttpRequest has been blocked by CORS policy`
-
-**Solução:** Certifique-se de que o backend tem:
 ```javascript
+// Backend deve ter:
 app.use(cors({
   origin: 'http://localhost:5173',
   credentials: true, // IMPORTANTE!
 }));
 ```
 
-### Cookies Não Sendo Enviados
+### Cookies Não Enviados
 
-**Problema:** Cookies não aparecem nas requisições
-
-**Solução:**
 1. Verifique `withCredentials: true` no Axios
-2. Backend deve ter `credentials: true` no CORS
-3. Backend deve usar `cookie-parser` middleware
-4. Cookies só funcionam com `http://localhost` ou HTTPS (não `127.0.0.1`)
+2. Backend: `credentials: true` no CORS
+3. Backend: Use `cookie-parser`
+4. Use `localhost` (não `127.0.0.1`)
 
-### Redirect Loop no Login
+### Toasts Não Aparecem
 
-**Problema:** Redireciona infinitamente entre login e dashboard
-
-**Solução:**
-1. Limpe localStorage: `localStorage.clear()`
-2. Limpe cookies do navegador
-3. Faça login novamente
+1. Verifique se `<ToastContainer />` está em `App.jsx`
+2. Use `toast.success()` não `toast.showToast()`
+3. Não inclua `toast` em dependências de `useCallback`
 
 ---
 
 ## Contribuindo
 
-Ao fazer mudanças:
-1. Siga a estrutura feature-based
-2. Use Tailwind CSS (evite CSS customizado)
-3. Crie componentes reutilizáveis em `shared/`
-4. Atualize este README se adicionar features importantes
-5. Use commits semânticos
+1. Siga feature-based architecture
+2. Use Tailwind CSS
+3. Componentes reutilizáveis em `shared/`
+4. Atualize documentação
+5. Use ícones do Bootstrap Icons
+6. Use ConfirmationModal ao invés de `window.confirm`
 
 ---
 
-## Suporte
+## Próximas Implementações
 
-- **Backend API:** http://localhost:3000/api-docs (Swagger)
-- **Issues:** <link-do-repo>/issues
+### ✅ COMPLETO
+- [x] Autenticação com cookies httpOnly
+- [x] CRUD de turmas e tarefas
+- [x] Upload de redações
+- [x] Sistema de anotações completo
+- [x] Status automático de tarefas
+- [x] Toast system
+- [x] Modal de confirmação
+
+### 🚧 EM PLANEJAMENTO
+- [ ] Chat entre professor e aluno
+- [ ] Notificações em tempo real (Socket.io)
+- [ ] Dashboard com gráficos
+- [ ] Exportar redações corrigidas (PDF)
+- [ ] Sistema de notas/competências
 
 ---
 
 **Última atualização:** 2025-12-17
-**Versão:** 1.2.0
-**Status:** ✅ Fase 1, 2, 3 Completas | 🚧 Fase 4 Em Andamento (Upload de Redações)
+**Versão:** 2.0.0
+**Status:** ✅ Todas as fases completas | Sistema de Anotações 100% funcional
