@@ -23,7 +23,7 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
   const [lastSaved, setLastSaved] = useState(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const { showToast } = useToast();
+  const toast = useToast();
   const autoSaveTimerRef = useRef(null);
   const lastSavedDataRef = useRef(null);
 
@@ -44,11 +44,12 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
       setHasUnsavedChanges(false);
     } catch (error) {
       console.error('Erro ao carregar anotações:', error);
-      showToast('Erro ao carregar anotações', 'error');
+      toast.error('Erro ao carregar anotações');
     } finally {
       setIsLoading(false);
     }
-  }, [essayId, pageNumber, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [essayId, pageNumber]);
 
   /**
    * Salva anotações no backend
@@ -72,17 +73,18 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
         setHasUnsavedChanges(false);
 
         if (showSuccessToast) {
-          showToast('Anotações salvas com sucesso', 'success');
+          toast.success('Anotações salvas com sucesso');
         }
       } catch (error) {
         console.error('Erro ao salvar anotações:', error);
-        showToast('Erro ao salvar anotações', 'error');
+        toast.error('Erro ao salvar anotações');
         throw error;
       } finally {
         setIsSaving(false);
       }
     },
-    [essayId, pageNumber, lines, readOnly, showToast]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [essayId, pageNumber, lines, readOnly]
   );
 
   /**
@@ -116,14 +118,15 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
 
       try {
         await annotationService.updateEssayStatus(essayId, status);
-        showToast('Status atualizado com sucesso', 'success');
+        toast.success('Status atualizado com sucesso');
       } catch (error) {
         console.error('Erro ao atualizar status:', error);
-        showToast('Erro ao atualizar status', 'error');
+        toast.error('Erro ao atualizar status');
         throw error;
       }
     },
-    [essayId, showToast]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [essayId]
   );
 
   /**
@@ -137,12 +140,13 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
       // Depois atualiza status para 'corrected'
       await updateStatus('corrected');
 
-      showToast('Correção finalizada com sucesso!', 'success');
+      toast.success('Correção finalizada com sucesso!');
     } catch (error) {
       console.error('Erro ao finalizar correção:', error);
       throw error;
     }
-  }, [lines, saveAnnotations, updateStatus, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lines, saveAnnotations, updateStatus]);
 
   /**
    * Limpa todas as anotações

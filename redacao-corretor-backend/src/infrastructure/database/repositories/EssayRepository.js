@@ -176,8 +176,8 @@ export class EssayRepository extends IEssayRepository {
     const sql = `
       UPDATE essays
       SET
-        status = $1,
-        corrected_at = CASE WHEN $1 = 'corrected' THEN CURRENT_TIMESTAMP ELSE corrected_at END
+        status = $1::text,
+        corrected_at = CASE WHEN $1::text = 'corrected' THEN CURRENT_TIMESTAMP ELSE corrected_at END
       WHERE id = $2
       RETURNING
         id,

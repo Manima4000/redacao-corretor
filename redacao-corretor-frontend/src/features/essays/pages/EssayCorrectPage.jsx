@@ -19,7 +19,7 @@ import { useToast } from '@/shared/hooks/useToast';
 export const EssayCorrectPage = () => {
   const { essayId } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const toast = useToast();
 
   const [essay, setEssay] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +37,7 @@ export const EssayCorrectPage = () => {
       } catch (err) {
         console.error('Erro ao carregar redação:', err);
         setError(err.response?.data?.error || 'Erro ao carregar redação');
-        showToast('Erro ao carregar redação', 'error');
+        toast.error('Erro ao carregar redação');
       } finally {
         setIsLoading(false);
       }
@@ -46,18 +46,19 @@ export const EssayCorrectPage = () => {
     if (essayId) {
       loadEssay();
     }
-  }, [essayId, showToast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [essayId]);
 
   /**
    * Callback ao finalizar correção
    */
   const handleFinish = () => {
-    showToast('Correção finalizada! Redirecionando...', 'success');
+    toast.success('Correção finalizada! Redirecionando...');
 
     // Redireciona para página de alunos da tarefa após 1.5s
     setTimeout(() => {
-      if (essay?.task?.id) {
-        navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}/students`);
+      if (essay?.task?.id && essay?.task?.classId) {
+        navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
       } else {
         navigate('/dashboard');
       }
@@ -68,8 +69,8 @@ export const EssayCorrectPage = () => {
    * Voltar para lista de alunos
    */
   const handleBack = () => {
-    if (essay?.task?.id) {
-      navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}/students`);
+    if (essay?.task?.id && essay?.task?.classId) {
+      navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
     } else {
       navigate('/dashboard');
     }

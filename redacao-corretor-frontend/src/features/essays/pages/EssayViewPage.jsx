@@ -19,7 +19,7 @@ import { useToast } from '@/shared/hooks/useToast';
 export const EssayViewPage = () => {
   const { essayId } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useToast();
+  const toast = useToast();
 
   const [essay, setEssay] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +37,7 @@ export const EssayViewPage = () => {
       } catch (err) {
         console.error('Erro ao carregar redação:', err);
         setError(err.response?.data?.error || 'Erro ao carregar redação');
-        showToast('Erro ao carregar redação', 'error');
+        toast.error('Erro ao carregar redação');
       } finally {
         setIsLoading(false);
       }
@@ -46,7 +46,7 @@ export const EssayViewPage = () => {
     if (essayId) {
       loadEssay();
     }
-  }, [essayId, showToast]);
+  }, [essayId]);
 
   /**
    * Voltar para detalhes da tarefa
