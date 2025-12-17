@@ -3,6 +3,7 @@ import authRoutes from './auth.routes.js';
 import classRoutes from './classes.routes.js';
 import taskRoutes from './tasks.routes.js';
 import essayRoutes from './essays.routes.js';
+import testRoutes from './test.routes.js';
 
 const router = Router();
 
@@ -13,6 +14,11 @@ router.use('/auth', authRoutes);
 router.use('/classes', classRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/essays', essayRoutes);
+
+// Rotas de teste (apenas para desenvolvimento)
+if (process.env.NODE_ENV === 'development') {
+  router.use('/test', testRoutes);
+}
 
 // Rotas futuras serão adicionadas aqui:
 // router.use('/notifications', notificationRoutes);

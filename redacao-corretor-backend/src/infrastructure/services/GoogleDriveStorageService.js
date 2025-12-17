@@ -111,8 +111,11 @@ export class GoogleDriveStorageService extends IFileStorageService {
   }
 
   /**
-   * Deleta arquivo do Google Drive
+   * Deleta arquivo do Google Drive (move para lixeira)
    * SRP: Apenas deleta arquivo
+   *
+   * IMPORTANTE: Para Shared Drives, usamos "trash" ao invés de "delete" permanente,
+   * pois o Service Account geralmente não tem permissão de deletar permanentemente.
    *
    * @async
    * @param {string} fileId - ID do arquivo no Google Drive
@@ -122,14 +125,19 @@ export class GoogleDriveStorageService extends IFileStorageService {
     await this._ensureInitialized();
 
     try {
-      console.log(`[GOOGLE DRIVE] Deletando arquivo: ${fileId}`);
+      console.log(`[GOOGLE DRIVE] Movendo arquivo para lixeira: ${fileId}`);
 
-      await this.drive.files.delete({
+      // Mover para lixeira (funciona em Shared Drives)
+      await this.drive.files.update({
         fileId: fileId,
-        supportsAllDrives: true,
+        requestBody: {
+          trashed: true,
+        },
+        supportsAllDrives: true, // Suporta Shared Drives
+        supportsTeamDrives: true, // Compatibilidade com nome antigo
       });
 
-      console.log(`[GOOGLE DRIVE] Arquivo deletado: ${fileId}`);
+      console.log(`[GOOGLE DRIVE] Arquivo movido para lixeira com sucesso: ${fileId}`);
 
       return true;
     } catch (error) {
@@ -139,7 +147,7 @@ export class GoogleDriveStorageService extends IFileStorageService {
         return false;
       }
 
-      console.error('[GOOGLE DRIVE] Erro ao deletar arquivo:', error);
+      console.error('[GOOGLE DRIVE] Erro ao mover arquivo para lixeira:', error);
       throw new Error(`Falha ao deletar arquivo do Google Drive: ${error.message}`);
     }
   }

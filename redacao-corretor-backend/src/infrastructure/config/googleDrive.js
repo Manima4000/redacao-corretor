@@ -133,7 +133,7 @@ class GoogleDriveConfig {
     const auth = new google.auth.JWT({
       email: credentials.client_email,
       key: privateKey,
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
+      scopes: ['https://www.googleapis.com/auth/drive'],
     });
 
     await auth.authorize();

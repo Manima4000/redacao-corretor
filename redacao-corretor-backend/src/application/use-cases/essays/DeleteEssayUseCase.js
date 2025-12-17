@@ -75,8 +75,15 @@ export class DeleteEssayUseCase {
 
     // 3. Deletar arquivo do Google Drive
     try {
-      await this.fileStorageService.delete(essay.fileUrl);
-      console.log(`[DELETE ESSAY] Arquivo deletado do Google Drive: ${essay.fileUrl}`);
+      const deleted = await this.fileStorageService.delete(essay.fileUrl);
+
+      if (deleted) {
+        console.log(`[DELETE ESSAY] Arquivo deletado do Google Drive: ${essay.fileUrl}`);
+      } else {
+        console.warn(
+          `[DELETE ESSAY] Arquivo não foi encontrado no Google Drive: ${essay.fileUrl}`
+        );
+      }
     } catch (error) {
       console.error('[DELETE ESSAY] Erro ao deletar arquivo do Google Drive:', error);
       // Continua mesmo se falhar (arquivo pode não existir mais)
