@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { EssayController } from '../controllers/EssayController.js';
 import { UploadEssayUseCase } from '../../../application/use-cases/essays/UploadEssayUseCase.js';
 import { GetStudentEssayByTaskUseCase } from '../../../application/use-cases/essays/GetStudentEssayByTaskUseCase.js';
+import { GetEssayByIdUseCase } from '../../../application/use-cases/essays/GetEssayByIdUseCase.js';
+import { GetEssayImageUseCase } from '../../../application/use-cases/essays/GetEssayImageUseCase.js';
 import { DeleteEssayUseCase } from '../../../application/use-cases/essays/DeleteEssayUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
@@ -37,6 +39,20 @@ const getStudentEssayByTaskUseCase = new GetStudentEssayByTaskUseCase(
   fileStorageService
 );
 
+const getEssayByIdUseCase = new GetEssayByIdUseCase(
+  essayRepository,
+  taskRepository,
+  studentRepository,
+  fileStorageService
+);
+
+const getEssayImageUseCase = new GetEssayImageUseCase(
+  essayRepository,
+  taskRepository,
+  studentRepository,
+  fileStorageService
+);
+
 const deleteEssayUseCase = new DeleteEssayUseCase(
   essayRepository,
   taskRepository,
@@ -47,6 +63,8 @@ const deleteEssayUseCase = new DeleteEssayUseCase(
 const essayController = new EssayController(
   uploadEssayUseCase,
   getStudentEssayByTaskUseCase,
+  getEssayByIdUseCase,
+  getEssayImageUseCase,
   deleteEssayUseCase
 );
 
@@ -290,6 +308,50 @@ router.get(
   '/:essayId',
   authMiddleware,
   (req, res, next) => essayController.getById(req, res, next)
+);
+
+/**
+ * @swagger
+ * /api/essays/{essayId}/image:
+ *   get:
+ *     summary: Obter imagem da redação (proxy)
+ *     description: Retorna a imagem da redação diretamente (proxy do Google Drive)
+ *     tags: [Essays]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: essayId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da redação
+ *     responses:
+ *       200:
+ *         description: Imagem retornada com sucesso
+ *         content:
+ *           image/jpeg:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           image/png:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Sem permissão para acessar esta redação
+ *       404:
+ *         description: Redação não encontrada
+ */
+router.get(
+  '/:essayId/image',
+  authMiddleware,
+  (req, res, next) => essayController.getEssayImage(req, res, next)
 );
 
 /**

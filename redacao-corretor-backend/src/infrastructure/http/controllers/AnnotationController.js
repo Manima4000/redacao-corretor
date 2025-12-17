@@ -60,6 +60,15 @@ export class AnnotationController {
       const { annotationData, pageNumber = 1 } = req.body;
       const teacherId = req.user.id; // Vem do authMiddleware
 
+      console.log('[ANNOTATION CONTROLLER] Recebendo requisição...', {
+        essayId,
+        teacherId,
+        userType: req.user.userType,
+        pageNumber,
+        hasAnnotationData: !!annotationData,
+        bodyKeys: Object.keys(req.body),
+      });
+
       // Validar que é um professor
       if (req.user.userType !== 'teacher') {
         return res.status(403).json({

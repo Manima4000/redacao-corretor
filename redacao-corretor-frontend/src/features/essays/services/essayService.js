@@ -44,6 +44,16 @@ export const essayService = {
   },
 
   /**
+   * Busca redação por ID
+   * @param {string} essayId - ID da redação
+   * @returns {Promise<Object>} Dados da redação
+   */
+  async getEssayById(essayId) {
+    const response = await api.get(`/essays/${essayId}`);
+    return response.data.data;
+  },
+
+  /**
    * Deleta redação (para reenviar)
    * @param {string} essayId - ID da redação
    * @returns {Promise<void>}

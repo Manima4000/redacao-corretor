@@ -1,10 +1,13 @@
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/shared/components/ui/Card';
+import { Button } from '@/shared/components/ui/Button';
 
 /**
  * Componente para exibir um aluno na lista
  * Segue SRP - apenas exibe dados de um aluno
  */
 export const StudentListItem = ({ student }) => {
+  const navigate = useNavigate();
   const getStatusBadge = () => {
     if (!student.hasSubmitted) {
       return (
@@ -41,6 +44,13 @@ export const StudentListItem = ({ student }) => {
   const formatDate = (dateString) => {
     if (!dateString) return null;
     const date = new Date(dateString);
+
+    // Verifica se a data é válida
+    if (isNaN(date.getTime())) {
+      console.error('Data inválida:', dateString);
+      return 'Data inválida';
+    }
+
     return date.toLocaleString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
@@ -86,6 +96,25 @@ export const StudentListItem = ({ student }) => {
 
         <div className="flex items-center gap-3">
           {getStatusBadge()}
+
+          {/* Botão Corrigir - apenas se o aluno enviou a redação */}
+          {student.hasSubmitted && student.essay?.id && (
+            <Button
+              onClick={() => navigate(`/essays/${student.essay.id}/correct`)}
+              variant={student.essay.status === 'corrected' ? 'secondary' : 'primary'}
+              size="sm"
+            >
+              {student.essay.status === 'corrected' ? (
+                <>
+                  <i className="bi bi-eye-fill"></i> Ver Correção
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-pencil-fill"></i> Corrigir
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </Card>

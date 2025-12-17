@@ -1,6 +1,6 @@
 /**
  * Componente Button reutilizável
- * Variants: primary, secondary, danger, ghost
+ * Variants: primary, secondary, danger, success, ghost
  * Sizes: sm, md, lg
  */
 export const Button = ({
@@ -19,6 +19,7 @@ export const Button = ({
     primary: 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800',
     secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300 active:bg-gray-400',
     danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
+    success: 'bg-green-600 text-white hover:bg-green-700 active:bg-green-800',
     ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 active:bg-gray-200',
   };
 

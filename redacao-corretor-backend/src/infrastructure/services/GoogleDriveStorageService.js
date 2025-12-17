@@ -156,26 +156,65 @@ export class GoogleDriveStorageService extends IFileStorageService {
    * Obtém URL pública de um arquivo
    * SRP: Apenas retorna URL
    *
+   * IMPORTANTE: Retorna URL direta para visualização/download da imagem
+   * que pode ser usada em <img> tags e canvas sem CORS issues
+   *
    * @async
    * @param {string} fileId - ID do arquivo
-   * @returns {Promise<string>} URL pública
+   * @returns {Promise<string>} URL pública para visualização direta
    */
   async getPublicUrl(fileId) {
     await this._ensureInitialized();
 
     try {
-      const response = await this.drive.files.get({
+      // Verifica se o arquivo existe e está acessível
+      await this.drive.files.get({
         fileId: fileId,
-        fields: 'webViewLink, webContentLink',
+        fields: 'id, name',
         supportsAllDrives: true,
       });
 
-      // webViewLink: para visualização no navegador
-      // webContentLink: para download direto
-      return response.data.webViewLink || response.data.webContentLink;
+      // Retorna URL direta para visualização (funciona em <img> e canvas)
+      // Esta URL permite visualização sem autenticação se o arquivo estiver público
+      return `https://drive.google.com/uc?export=view&id=${fileId}`;
     } catch (error) {
       console.error('[GOOGLE DRIVE] Erro ao obter URL pública:', error);
       throw new Error(`Falha ao obter URL pública: ${error.message}`);
+    }
+  }
+
+  /**
+   * Baixa arquivo do Google Drive como buffer
+   * SRP: Apenas baixa o arquivo
+   *
+   * @async
+   * @param {string} fileId - ID do arquivo
+   * @returns {Promise<Buffer>} Buffer do arquivo
+   */
+  async downloadFile(fileId) {
+    await this._ensureInitialized();
+
+    try {
+      console.log(`[GOOGLE DRIVE] Baixando arquivo: ${fileId}`);
+
+      const response = await this.drive.files.get(
+        {
+          fileId: fileId,
+          alt: 'media', // Importante: retorna o conteúdo do arquivo, não metadados
+          supportsAllDrives: true,
+        },
+        {
+          responseType: 'arraybuffer', // Retorna como arraybuffer
+        }
+      );
+
+      console.log(`[GOOGLE DRIVE] Arquivo baixado com sucesso: ${fileId}`);
+
+      // Converter arraybuffer para Buffer
+      return Buffer.from(response.data);
+    } catch (error) {
+      console.error('[GOOGLE DRIVE] Erro ao baixar arquivo:', error);
+      throw new Error(`Falha ao baixar arquivo do Google Drive: ${error.message}`);
     }
   }
 

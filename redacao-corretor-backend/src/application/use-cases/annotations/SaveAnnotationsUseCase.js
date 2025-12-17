@@ -43,6 +43,14 @@ export class SaveAnnotationsUseCase {
    * @throws {ValidationError} Se dados forem inválidos
    */
   async execute({ essayId, teacherId, annotationData, pageNumber = 1 }) {
+    console.log('[SAVE ANNOTATIONS] Iniciando salvamento...', {
+      essayId,
+      teacherId,
+      pageNumber,
+      hasAnnotationData: !!annotationData,
+      linesCount: annotationData?.lines?.length,
+    });
+
     // 1. Validar que a redação existe
     const essay = await this.essayRepository.findById(essayId);
 
@@ -101,40 +109,61 @@ export class SaveAnnotationsUseCase {
    */
   _validateAnnotationData(data) {
     if (!data || typeof data !== 'object') {
+      console.error('[SAVE ANNOTATIONS] Dados de anotação inválidos:', data);
       throw new ValidationError('Dados de anotação inválidos');
     }
 
     // Validar que tem array de linhas
     if (!Array.isArray(data.lines)) {
+      console.error('[SAVE ANNOTATIONS] Campo "lines" não é um array:', data.lines);
       throw new ValidationError('Campo "lines" deve ser um array');
     }
 
+    console.log(`[SAVE ANNOTATIONS] Validando ${data.lines.length} linhas...`);
+
     // Validar estrutura de cada linha
-    for (const line of data.lines) {
+    for (let i = 0; i < data.lines.length; i++) {
+      const line = data.lines[i];
+
       if (!Array.isArray(line.points)) {
-        throw new ValidationError('Cada linha deve ter um array "points"');
+        console.error(`[SAVE ANNOTATIONS] Linha ${i}: "points" não é um array:`, line.points);
+        throw new ValidationError(`Linha ${i}: "points" deve ser um array`);
       }
 
       if (!line.color || typeof line.color !== 'string') {
-        throw new ValidationError('Cada linha deve ter uma "color" válida');
+        console.error(`[SAVE ANNOTATIONS] Linha ${i}: "color" inválida:`, line.color);
+        throw new ValidationError(`Linha ${i}: "color" deve ser uma string válida`);
       }
 
       if (typeof line.size !== 'number' || line.size <= 0) {
-        throw new ValidationError('Cada linha deve ter um "size" numérico positivo');
+        console.error(`[SAVE ANNOTATIONS] Linha ${i}: "size" inválido:`, line.size);
+        throw new ValidationError(`Linha ${i}: "size" deve ser um número positivo`);
       }
 
-      // Validar que cada ponto tem formato [x, y, pressure]
-      for (const point of line.points) {
-        if (!Array.isArray(point) || point.length !== 3) {
-          throw new ValidationError('Cada ponto deve ter formato [x, y, pressure]');
+      // Validar que cada ponto tem formato [x, y, pressure] ou [x, y]
+      for (let j = 0; j < line.points.length; j++) {
+        const point = line.points[j];
+
+        if (!Array.isArray(point) || (point.length !== 2 && point.length !== 3)) {
+          console.error(`[SAVE ANNOTATIONS] Linha ${i}, ponto ${j}: formato inválido:`, point);
+          throw new ValidationError(`Linha ${i}, ponto ${j}: deve ter formato [x, y] ou [x, y, pressure]`);
         }
 
         const [x, y, pressure] = point;
 
-        if (typeof x !== 'number' || typeof y !== 'number' || typeof pressure !== 'number') {
-          throw new ValidationError('Coordenadas e pressure devem ser números');
+        if (typeof x !== 'number' || typeof y !== 'number') {
+          console.error(`[SAVE ANNOTATIONS] Linha ${i}, ponto ${j}: coordenadas inválidas:`, { x, y });
+          throw new ValidationError(`Linha ${i}, ponto ${j}: coordenadas devem ser números`);
+        }
+
+        // Pressure é opcional
+        if (pressure !== undefined && typeof pressure !== 'number') {
+          console.error(`[SAVE ANNOTATIONS] Linha ${i}, ponto ${j}: pressure inválido:`, pressure);
+          throw new ValidationError(`Linha ${i}, ponto ${j}: pressure deve ser um número`);
         }
       }
     }
+
+    console.log('[SAVE ANNOTATIONS] Validação concluída com sucesso');
   }
 }

@@ -15,16 +15,22 @@ export class EssayController {
   /**
    * @param {UploadEssayUseCase} uploadEssayUseCase - Use case de upload
    * @param {GetStudentEssayByTaskUseCase} getStudentEssayByTaskUseCase - Use case busca redação
+   * @param {GetEssayByIdUseCase} getEssayByIdUseCase - Use case busca redação por ID
+   * @param {GetEssayImageUseCase} getEssayImageUseCase - Use case busca imagem da redação
    * @param {DeleteEssayUseCase} deleteEssayUseCase - Use case de delete
    */
-  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, deleteEssayUseCase) {
+  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, getEssayByIdUseCase, getEssayImageUseCase, deleteEssayUseCase) {
     this.uploadEssayUseCase = uploadEssayUseCase;
     this.getStudentEssayByTaskUseCase = getStudentEssayByTaskUseCase;
+    this.getEssayByIdUseCase = getEssayByIdUseCase;
+    this.getEssayImageUseCase = getEssayImageUseCase;
     this.deleteEssayUseCase = deleteEssayUseCase;
 
     // Bind methods
     this.upload = this.upload.bind(this);
     this.getStudentEssayByTask = this.getStudentEssayByTask.bind(this);
+    this.getById = this.getById.bind(this);
+    this.getEssayImage = this.getEssayImage.bind(this);
     this.delete = this.delete.bind(this);
   }
 
@@ -194,15 +200,52 @@ export class EssayController {
   async getById(req, res, next) {
     try {
       const { essayId } = req.params;
+      const userId = req.user.id;
+      const userType = req.user.userType;
 
-      // TODO: Implementar use case GetEssayByIdUseCase
+      const essay = await this.getEssayByIdUseCase.execute({
+        essayId,
+        userId,
+        userType,
+      });
 
       res.status(200).json({
         success: true,
-        data: {
-          essay: {},
-        },
+        data: essay,
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Obter imagem da redação (proxy)
+   * GET /api/essays/:essayId/image
+   *
+   * @async
+   * @param {Request} req - Request do Express
+   * @param {Response} res - Response do Express
+   * @param {NextFunction} next - Next middleware
+   */
+  async getEssayImage(req, res, next) {
+    try {
+      const { essayId } = req.params;
+      const userId = req.user.id;
+      const userType = req.user.userType;
+
+      const { buffer, mimetype } = await this.getEssayImageUseCase.execute({
+        essayId,
+        userId,
+        userType,
+      });
+
+      // Define headers para cache e tipo de conteúdo
+      res.setHeader('Content-Type', mimetype);
+      res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache de 1 hora
+      res.setHeader('Content-Length', buffer.length);
+
+      // Envia o buffer diretamente
+      res.send(buffer);
     } catch (error) {
       next(error);
     }

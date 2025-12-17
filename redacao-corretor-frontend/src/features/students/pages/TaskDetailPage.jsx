@@ -255,18 +255,30 @@ export const TaskDetailPage = () => {
 
                 {/* Botões de ação */}
                 <div className="flex gap-3 pt-2">
+                  {/* Botão Ver Correção - aparece quando status é 'corrected' ou 'correcting' */}
+                  {(essay.status === 'corrected' || essay.status === 'correcting') && (
+                    <Button
+                      variant="primary"
+                      className="flex-1 justify-center"
+                      onClick={() => navigate(`/essays/${essay.id}/view`)}
+                    >
+                      <i className="bi bi-pencil-square mr-2"></i>
+                      {essay.status === 'corrected' ? 'Ver Correção' : 'Ver Anotações'}
+                    </Button>
+                  )}
+
                   <Button
-                    variant="primary"
+                    variant={essay.status === 'corrected' || essay.status === 'correcting' ? 'secondary' : 'primary'}
                     className="flex-1 justify-center"
                     onClick={() => window.open(essay.publicUrl, '_blank')}
                   >
-                    <i className="bi bi-eye-fill mr-2"></i> Visualizar
+                    <i className="bi bi-eye-fill mr-2"></i> Visualizar Original
                   </Button>
-                  
+
                   {essay.status === 'pending' && isTaskActive && (
                     <Button
-                      variant="outline"
-                      className="flex-1 justify-center text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+                      variant="danger"
+                      className="flex-1 justify-center"
                       onClick={handleDelete}
                       disabled={isDeleting}
                     >

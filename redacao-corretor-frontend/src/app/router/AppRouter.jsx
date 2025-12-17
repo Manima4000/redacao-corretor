@@ -12,6 +12,8 @@ import { ClassTasksPage } from '@/features/classes/pages/ClassTasksPage';
 import { TaskStudentsPage } from '@/features/tasks/pages/TaskStudentsPage';
 import { StudentHomePage } from '@/features/students/pages/StudentHomePage';
 import { TaskDetailPage } from '@/features/students/pages/TaskDetailPage';
+import { EssayCorrectPage } from '@/features/essays/pages/EssayCorrectPage';
+import { EssayViewPage } from '@/features/essays/pages/EssayViewPage';
 
 // Layout
 import { MainLayout } from '@/shared/components/layout/MainLayout';
@@ -65,6 +67,16 @@ export const AppRouter = () => {
           }
         />
 
+        {/* Essay View - Student (fullscreen, no layout) */}
+        <Route
+          path="/essays/:essayId/view"
+          element={
+            <PrivateRoute>
+              <EssayViewPage />
+            </PrivateRoute>
+          }
+        />
+
         {/* Private routes - Teacher Only */}
         <Route
           path={ROUTES.DASHBOARD}
@@ -113,6 +125,18 @@ export const AppRouter = () => {
                 <MainLayout>
                   <TaskStudentsPage />
                 </MainLayout>
+              </RequireTeacher>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Essay Correction - Teacher Only (fullscreen, no layout) */}
+        <Route
+          path="/essays/:essayId/correct"
+          element={
+            <PrivateRoute>
+              <RequireTeacher>
+                <EssayCorrectPage />
               </RequireTeacher>
             </PrivateRoute>
           }
