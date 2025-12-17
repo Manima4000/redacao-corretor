@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { essayService } from '@/features/essays/services/essayService';
 import { Button } from '@/shared/components/ui/Button';
+import { useToast } from '@/shared/hooks/useToast';
 
 /**
  * Componente de upload de redação
@@ -15,6 +16,7 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+  const toast = useToast();
 
   // Configurações de validação
   const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -86,14 +88,20 @@ export const UploadEssayForm = ({ taskId, onUploadSuccess }) => {
         fileInputRef.current.value = '';
       }
 
+      // Toast de sucesso
+      toast.success('Redação enviada com sucesso! Aguarde a correção.');
+
       if (onUploadSuccess) {
         onUploadSuccess();
       }
     } catch (err) {
       console.error('Erro ao fazer upload:', err);
-      setError(
-        err.response?.data?.error || 'Erro ao fazer upload. Tente novamente.'
-      );
+      const errorMessage =
+        err.response?.data?.error || 'Erro ao fazer upload. Tente novamente.';
+
+      // Mostra erro no componente E no toast
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }

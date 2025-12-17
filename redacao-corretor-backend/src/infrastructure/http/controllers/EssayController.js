@@ -15,14 +15,17 @@ export class EssayController {
   /**
    * @param {UploadEssayUseCase} uploadEssayUseCase - Use case de upload
    * @param {GetStudentEssayByTaskUseCase} getStudentEssayByTaskUseCase - Use case busca redação
+   * @param {DeleteEssayUseCase} deleteEssayUseCase - Use case de delete
    */
-  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase) {
+  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, deleteEssayUseCase) {
     this.uploadEssayUseCase = uploadEssayUseCase;
     this.getStudentEssayByTaskUseCase = getStudentEssayByTaskUseCase;
+    this.deleteEssayUseCase = deleteEssayUseCase;
 
     // Bind methods
     this.upload = this.upload.bind(this);
     this.getStudentEssayByTask = this.getStudentEssayByTask.bind(this);
+    this.delete = this.delete.bind(this);
   }
 
   /**
@@ -217,8 +220,14 @@ export class EssayController {
   async delete(req, res, next) {
     try {
       const { essayId } = req.params;
+      const userId = req.user.id;
+      const userType = req.user.userType;
 
-      // TODO: Implementar use case DeleteEssayUseCase
+      await this.deleteEssayUseCase.execute({
+        essayId,
+        userId,
+        userType,
+      });
 
       res.status(200).json({
         success: true,

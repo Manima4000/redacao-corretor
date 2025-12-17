@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { EssayController } from '../controllers/EssayController.js';
 import { UploadEssayUseCase } from '../../../application/use-cases/essays/UploadEssayUseCase.js';
 import { GetStudentEssayByTaskUseCase } from '../../../application/use-cases/essays/GetStudentEssayByTaskUseCase.js';
+import { DeleteEssayUseCase } from '../../../application/use-cases/essays/DeleteEssayUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
@@ -36,10 +37,17 @@ const getStudentEssayByTaskUseCase = new GetStudentEssayByTaskUseCase(
   fileStorageService
 );
 
+const deleteEssayUseCase = new DeleteEssayUseCase(
+  essayRepository,
+  taskRepository,
+  fileStorageService
+);
+
 // Controller
 const essayController = new EssayController(
   uploadEssayUseCase,
-  getStudentEssayByTaskUseCase
+  getStudentEssayByTaskUseCase,
+  deleteEssayUseCase
 );
 
 /**

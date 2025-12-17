@@ -6,6 +6,7 @@ import { UploadEssayForm } from '@/features/essays/components/UploadEssayForm';
 import { Card } from '@/shared/components/ui/Card';
 import { Button } from '@/shared/components/ui/Button';
 import { Spinner } from '@/shared/components/ui/Spinner';
+import { useToast } from '@/shared/hooks/useToast';
 
 /**
  * Página de detalhes da tarefa para o aluno
@@ -30,6 +31,9 @@ export const TaskDetailPage = () => {
    */
   const [essay, setEssay] = useState(null);
   const [isLoadingEssay, setIsLoadingEssay] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const toast = useToast();
 
   /**
    * Busca redação do aluno para esta tarefa
@@ -58,6 +62,41 @@ export const TaskDetailPage = () => {
   const handleUploadSuccess = () => {
     // Recarregar redação
     essayService.getStudentEssay(taskId).then(setEssay);
+  };
+
+  /**
+   * Deleta a redação do aluno
+   */
+  const handleDelete = async () => {
+    if (!essay) return;
+
+    if (
+      !window.confirm(
+        'Deseja deletar sua redação para enviar outra? Esta ação não pode ser desfeita.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await essayService.deleteEssay(essay.id);
+
+      // Limpa estado da redação
+      setEssay(null);
+
+      // Toast de sucesso
+      toast.success('Redação deletada com sucesso! Você pode enviar outra agora.');
+    } catch (error) {
+      console.error('Erro ao deletar redação:', error);
+
+      // Toast de erro
+      const errorMessage =
+        error.response?.data?.error || 'Erro ao deletar redação. Tente novamente.';
+      toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const hasSubmitted = !!essay;
@@ -235,18 +274,10 @@ export const TaskDetailPage = () => {
                   <Button
                     variant="danger"
                     size="md"
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          'Deseja deletar sua redação para enviar outra? Esta ação não pode ser desfeita.'
-                        )
-                      ) {
-                        // TODO: Implementar delete
-                        alert('Funcionalidade de delete será implementada em breve');
-                      }
-                    }}
+                    onClick={handleDelete}
+                    disabled={isDeleting}
                   >
-                    🗑️ Deletar e reenviar
+                    {isDeleting ? '⏳ Deletando...' : '🗑️ Deletar e reenviar'}
                   </Button>
                 )}
               </div>
