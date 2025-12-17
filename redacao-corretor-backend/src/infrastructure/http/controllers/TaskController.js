@@ -11,6 +11,7 @@ import { TaskRepository } from '../../database/repositories/TaskRepository.js';
 import { ClassRepository } from '../../database/repositories/ClassRepository.js';
 import { TeacherRepository } from '../../database/repositories/TeacherRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
+import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 
 /**
  * Controller para gerenciamento de tarefas
@@ -23,6 +24,7 @@ export class TaskController {
     this.classRepository = new ClassRepository();
     this.teacherRepository = new TeacherRepository();
     this.studentRepository = new StudentRepository();
+    this.essayRepository = new EssayRepository();
 
     this.createTaskUseCase = new CreateTaskUseCase(
       this.taskRepository,
@@ -47,7 +49,8 @@ export class TaskController {
 
     this.getTasksByClassUseCase = new GetTasksByClassUseCase(
       this.taskRepository,
-      this.classRepository
+      this.classRepository,
+      this.essayRepository
     );
 
     // Bind dos métodos (para manter contexto quando usado como callback)
@@ -202,12 +205,21 @@ export class TaskController {
   /**
    * GET /api/tasks/class/:classId
    * Busca todas as tarefas de uma turma específica
+   * Se for aluno, inclui informação sobre submissão de redação
    */
   async getTasksByClass(req, res, next) {
     try {
       const { classId } = req.params;
+      const userId = req.user?.id;
+      const userType = req.user?.userType;
 
-      const result = await this.getTasksByClassUseCase.execute(classId);
+      // Se for aluno, passa o studentId para incluir info de submissão
+      const studentId = userType === 'student' ? userId : null;
+
+      const result = await this.getTasksByClassUseCase.execute({
+        classId,
+        studentId
+      });
 
       res.status(200).json({
         success: true,

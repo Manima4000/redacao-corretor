@@ -80,16 +80,27 @@ export const StudentTaskCard = ({ task, isPending }) => {
             </span>
           </div>
 
+          {/* Badge de Prazo Próximo */}
           {isNearDeadline() && isPending && (
             <p className="text-xs text-orange-600 font-medium flex items-center gap-1">
               <i className="bi bi-exclamation-triangle-fill" /> Prazo encerrando em breve!
             </p>
           )}
 
-          {!isPending && (
-            <p className="text-xs text-gray-400">
-              Prazo encerrado
-            </p>
+          {/* Badge de Status de Envio */}
+          {task.hasSubmitted && (
+            <div className="flex items-center gap-1 text-xs">
+              <i className="bi bi-check-circle-fill text-green-600" />
+              <span className="text-green-700 font-medium">Redação Enviada</span>
+            </div>
+          )}
+
+          {/* Badge de Prazo Encerrado (sem envio) */}
+          {!isPending && !task.hasSubmitted && (
+            <div className="flex items-center gap-1 text-xs">
+              <i className="bi bi-x-circle-fill text-red-500" />
+              <span className="text-gray-500">Prazo encerrado</span>
+            </div>
           )}
         </div>
       </div>

@@ -7,6 +7,7 @@ import { useAnnotations } from '../hooks/useAnnotations';
 import { ToolbarAnnotation } from './ToolbarAnnotation';
 import { getStrokeOptions } from '../utils/freehandHelper';
 import { Spinner } from '@/shared/components/ui/Spinner';
+import { ConfirmationModal } from '@/shared/components/ui/ConfirmationModal';
 
 /**
  * Componente de anotação de redação (produção)
@@ -41,6 +42,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
   const [size, setSize] = useState(4); // Médio padrão
   const [isEraser, setIsEraser] = useState(false);
   const [currentLine, setCurrentLine] = useState(null);
+  const [showClearModal, setShowClearModal] = useState(false);
 
   // Refs
   const containerRef = useRef(null);
@@ -394,15 +396,19 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
   };
 
   /**
-   * Limpa tudo com confirmação
+   * Abre modal de confirmação para limpar
    */
   const handleClear = () => {
     if (lines.length === 0) return;
+    setShowClearModal(true);
+  };
 
-    const confirmed = window.confirm('Tem certeza que deseja limpar todas as anotações? Esta ação não pode ser desfeita.');
-    if (confirmed) {
-      clearAnnotations();
-    }
+  /**
+   * Confirma e limpa todas as anotações
+   */
+  const confirmClear = () => {
+    clearAnnotations();
+    setShowClearModal(false);
   };
 
   if (isLoading) {
@@ -541,6 +547,18 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
           </Stage>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Limpeza */}
+      <ConfirmationModal
+        isOpen={showClearModal}
+        onClose={() => setShowClearModal(false)}
+        onConfirm={confirmClear}
+        title="Limpar Anotações"
+        message="Tem certeza que deseja limpar todas as anotações? Esta ação não pode ser desfeita."
+        confirmText="Limpar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

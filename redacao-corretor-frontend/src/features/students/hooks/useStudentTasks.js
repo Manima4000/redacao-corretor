@@ -40,16 +40,28 @@ export const useStudentTasks = (classId) => {
   /**
    * Separa tarefas em pendentes e concluídas
    * Usa useMemo para evitar recalcular a cada render
+   *
+   * Lógica:
+   * - Tarefa é PENDENTE se: prazo aberto E aluno não enviou
+   * - Tarefa é CONCLUÍDA se: aluno já enviou OU prazo encerrado
    */
   const { pendingTasks, completedTasks } = useMemo(() => {
     const now = new Date();
 
     const pending = tasks.filter((task) => {
+      // Se já enviou, não é pendente
+      if (task.hasSubmitted) return false;
+
+      // Se não enviou, verifica se o prazo ainda está aberto
       const deadline = task.deadline ? new Date(task.deadline) : null;
       return !deadline || deadline >= now;
     });
 
     const completed = tasks.filter((task) => {
+      // Se já enviou, é concluída
+      if (task.hasSubmitted) return true;
+
+      // Se não enviou, só é concluída se o prazo passou
       const deadline = task.deadline ? new Date(task.deadline) : null;
       return deadline && deadline < now;
     });

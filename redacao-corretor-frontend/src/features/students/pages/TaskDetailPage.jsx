@@ -6,6 +6,7 @@ import { UploadEssayForm } from '@/features/essays/components/UploadEssayForm';
 import { Card } from '@/shared/components/ui/Card';
 import { Button } from '@/shared/components/ui/Button';
 import { Spinner } from '@/shared/components/ui/Spinner';
+import { ConfirmationModal } from '@/shared/components/ui/ConfirmationModal';
 import { useToast } from '@/shared/hooks/useToast';
 
 /**
@@ -32,6 +33,7 @@ export const TaskDetailPage = () => {
   const [essay, setEssay] = useState(null);
   const [isLoadingEssay, setIsLoadingEssay] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const toast = useToast();
 
@@ -65,25 +67,26 @@ export const TaskDetailPage = () => {
   };
 
   /**
-   * Deleta a redação do aluno
+   * Abre modal de confirmação de exclusão
    */
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!essay) return;
+    setShowDeleteModal(true);
+  };
 
-    if (
-      !window.confirm(
-        'Deseja deletar sua redação para enviar outra? Esta ação não pode ser desfeita.'
-      )
-    ) {
-      return;
-    }
-
+  /**
+   * Confirma e executa a exclusão da redação
+   */
+  const confirmDelete = async () => {
     try {
       setIsDeleting(true);
       await essayService.deleteEssay(essay.id);
 
       // Limpa estado da redação
       setEssay(null);
+
+      // Fecha modal
+      setShowDeleteModal(false);
 
       // Toast de sucesso
       toast.success('Redação deletada com sucesso! Você pode enviar outra agora.');
@@ -316,6 +319,19 @@ export const TaskDetailPage = () => {
           </div>
         </Card>
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Deletar Redação"
+        message="Deseja deletar sua redação para enviar outra? Esta ação não pode ser desfeita."
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        variant="danger"
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

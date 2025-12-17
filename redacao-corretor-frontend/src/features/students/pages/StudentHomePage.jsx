@@ -75,7 +75,7 @@ export const StudentHomePage = () => {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-semibold text-gray-800">
-              <i className="bi bi-check-circle-fill"></i> Tarefas Encerradas ({completedTasks.length})
+              <i className="bi bi-check-circle-fill text-green-600"></i> Tarefas Concluídas ({completedTasks.length})
             </h2>
           </div>
 
