@@ -40,6 +40,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
   // Estados de desenho
   const [color, setColor] = useState('#EF4444'); // Vermelho padrão
   const [size, setSize] = useState(4); // Médio padrão
+  const [currentTool, setCurrentTool] = useState('pen'); // pen, highlighter, marker
   const [isEraser, setIsEraser] = useState(false);
   const [currentLine, setCurrentLine] = useState(null);
   const [showClearModal, setShowClearModal] = useState(false);
@@ -103,27 +104,8 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
           setImage(img);
           setImageLoaded(true);
 
-          // Ajusta tamanho do canvas baseado na imagem
-          if (containerRef.current) {
-            const containerWidth = containerRef.current.offsetWidth;
-            const containerHeight = containerRef.current.offsetHeight;
-
-            const imgAspectRatio = img.width / img.height;
-            const containerAspectRatio = containerWidth / containerHeight;
-
-            let width, height;
-            if (imgAspectRatio > containerAspectRatio) {
-              // Imagem mais larga
-              width = Math.min(containerWidth - 40, img.width);
-              height = width / imgAspectRatio;
-            } else {
-              // Imagem mais alta
-              height = Math.min(containerHeight - 40, img.height);
-              width = height * imgAspectRatio;
-            }
-
-            setCanvasSize({ width, height });
-          }
+          // Usa dimensões naturais da imagem para evitar distorção
+          setCanvasSize({ width: img.width, height: img.height });
         };
 
         img.onerror = (error) => {
@@ -151,35 +133,6 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
       }
     };
   }, [imageUrl]);
-
-  /**
-   * Ajusta tamanho do canvas ao redimensionar janela
-   */
-  useEffect(() => {
-    const handleResize = () => {
-      if (image && containerRef.current) {
-        const containerWidth = containerRef.current.offsetWidth;
-        const containerHeight = containerRef.current.offsetHeight;
-
-        const imgAspectRatio = image.width / image.height;
-        const containerAspectRatio = containerWidth / containerHeight;
-
-        let width, height;
-        if (imgAspectRatio > containerAspectRatio) {
-          width = Math.min(containerWidth - 40, image.width);
-          height = width / imgAspectRatio;
-        } else {
-          height = Math.min(containerHeight - 40, image.height);
-          width = height * imgAspectRatio;
-        }
-
-        setCanvasSize({ width, height });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [image]);
 
   /**
    * Pega posição do ponteiro relativa ao stage
@@ -225,6 +178,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
         points: [[pos.x, pos.y, pressure]],
         color: isEraser ? '#FFFFFF' : color, // Branco para apagar
         size: isEraser ? size * 2 : size, // Borracha é maior
+        tool: isEraser ? 'eraser' : currentTool, // Armazena ferramenta usada
       });
     },
     [
@@ -235,6 +189,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
       getRelativePointerPosition,
       color,
       size,
+      currentTool,
       isEraser,
     ]
   );
@@ -359,6 +314,17 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
       return acc;
     }, []);
 
+    // Configurações de estilo por ferramenta
+    const toolStyles = {
+      pen: { opacity: 1.0 },
+      highlighter: { opacity: 0.3 },
+      marker: { opacity: 0.7 },
+      eraser: { opacity: 1.0 },
+    };
+
+    const tool = line.tool || 'pen'; // Fallback para linhas antigas sem tool
+    const style = toolStyles[tool] || toolStyles.pen;
+
     return (
       <Line
         key={index}
@@ -370,6 +336,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
         lineJoin="round"
         closed
         fill={line.color}
+        opacity={style.opacity}
         globalCompositeOperation={line.color === '#FFFFFF' ? 'destination-out' : 'source-over'}
       />
     );
@@ -380,6 +347,14 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
    */
   const handleColorChange = (newColor) => {
     setColor(newColor);
+    setIsEraser(false);
+  };
+
+  /**
+   * Troca ferramenta e volta para modo desenho
+   */
+  const handleToolChange = (newTool) => {
+    setCurrentTool(newTool);
     setIsEraser(false);
   };
 
@@ -469,6 +444,8 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
           onColorChange={handleColorChange}
           size={size}
           onSizeChange={setSize}
+          currentTool={currentTool}
+          onToolChange={handleToolChange}
           isEraser={isEraser}
           onEraserToggle={() => setIsEraser(!isEraser)}
           onUndo={undo}

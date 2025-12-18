@@ -4,6 +4,7 @@ import { Button } from '@/shared/components/ui/Button';
  * Toolbar para anotações de redação
  *
  * Features:
+ * - Seleção de ferramenta (caneta, marca-texto, marcador)
  * - Seleção de cor (vermelho, azul, verde, preto)
  * - Seleção de tamanho (fino, médio, grosso)
  * - Modo borracha (toggle)
@@ -14,6 +15,8 @@ import { Button } from '@/shared/components/ui/Button';
  * - Indicadores de status
  *
  * @param {Object} props
+ * @param {string} props.currentTool - Ferramenta atual ('pen', 'highlighter', 'marker')
+ * @param {Function} props.onToolChange - Callback ao mudar ferramenta
  * @param {string} props.color - Cor atual
  * @param {Function} props.onColorChange - Callback ao mudar cor
  * @param {number} props.size - Tamanho atual
@@ -33,6 +36,8 @@ import { Button } from '@/shared/components/ui/Button';
  * @param {number} props.scale - Escala de zoom
  */
 export const ToolbarAnnotation = ({
+  currentTool,
+  onToolChange,
   color,
   onColorChange,
   size,
@@ -51,6 +56,12 @@ export const ToolbarAnnotation = ({
   pointerType,
   scale,
 }) => {
+  const tools = [
+    { value: 'pen', label: 'Caneta', icon: 'bi-pen-fill' },
+    { value: 'highlighter', label: 'Marca-texto', icon: 'bi-highlighter' },
+    { value: 'marker', label: 'Marcador', icon: 'bi-brush-fill' },
+  ];
+
   const colors = [
     { value: '#EF4444', label: 'Vermelho', bg: 'bg-red-500' },
     { value: '#3B82F6', label: 'Azul', bg: 'bg-blue-500' },
@@ -77,11 +88,11 @@ export const ToolbarAnnotation = ({
   const getPointerIcon = () => {
     switch (pointerType) {
       case 'pen':
-        return '✏️';
+        return <i className="bi bi-pencil-fill"></i>;
       case 'touch':
-        return '👆';
+        return <i className="bi bi-hand-index-thumb-fill"></i>;
       case 'mouse':
-        return '🖱️';
+        return <i className="bi bi-mouse-fill"></i>;
       default:
         return '?';
     }
@@ -143,6 +154,28 @@ export const ToolbarAnnotation = ({
 
       {/* Toolbar */}
       <div className="px-4 py-3 flex items-center gap-6 flex-wrap">
+        {/* Tools */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Ferramenta:</span>
+          <div className="flex gap-2">
+            {tools.map((tool) => (
+              <button
+                key={tool.value}
+                onClick={() => onToolChange(tool.value)}
+                className={`px-3 py-2 rounded flex items-center gap-2 text-sm font-medium transition-colors ${
+                  currentTool === tool.value && !isEraser
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                title={tool.label}
+              >
+                <i className={`bi ${tool.icon}`}></i>
+                {tool.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Colors */}
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-gray-700">Cor:</span>
@@ -192,12 +225,14 @@ export const ToolbarAnnotation = ({
           size="sm"
           title="Borracha (ou use o botão da caneta)"
         >
-          🧽 Borracha
+          <i className="bi bi-eraser-fill me-2"></i>
+          Borracha
         </Button>
 
         {/* Undo */}
         <Button onClick={onUndo} variant="secondary" size="sm" disabled={!canUndo} title="Desfazer (Ctrl+Z)">
-          ↩️ Desfazer
+          <i className="bi bi-arrow-counterclockwise me-2"></i>
+          Desfazer
         </Button>
 
         {/* Clear */}
@@ -208,7 +243,8 @@ export const ToolbarAnnotation = ({
           disabled={linesCount === 0}
           title="Limpar todas as anotações"
         >
-          🗑️ Limpar Tudo
+          <i className="bi bi-trash-fill me-2"></i>
+          Limpar Tudo
         </Button>
 
         {/* Separator */}
@@ -222,12 +258,14 @@ export const ToolbarAnnotation = ({
           disabled={isSaving || !hasUnsavedChanges}
           title="Salvar manualmente (auto-save a cada 5s)"
         >
-          💾 Salvar
+          <i className="bi bi-floppy-fill me-2"></i>
+          Salvar
         </Button>
 
         {/* Finish */}
         <Button onClick={onFinish} variant="success" size="sm" disabled={isSaving} title="Finalizar e marcar como corrigido">
-          ✅ Finalizar Correção
+          <i className="bi bi-check-circle-fill me-2"></i>
+          Finalizar Correção
         </Button>
       </div>
     </div>
