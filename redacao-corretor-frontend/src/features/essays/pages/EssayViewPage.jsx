@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { essayService } from '../services/essayService';
 import { EssayAnnotator } from '@/features/annotations/components/EssayAnnotator';
+import { EssayCorrectionSummary } from '../components/EssayCorrectionSummary';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { useToast } from '@/shared/hooks/useToast';
 
@@ -184,6 +185,11 @@ export const EssayViewPage = () => {
             ✅ Sua redação foi corrigida! Veja abaixo as anotações e comentários da professora.
           </p>
         </div>
+      )}
+
+      {/* Nota e Comentários da Correção */}
+      {essay.status === 'corrected' && (
+        <EssayCorrectionSummary grade={essay.grade} writtenFeedback={essay.writtenFeedback} />
       )}
 
       {/* Canvas de visualização (read-only) */}

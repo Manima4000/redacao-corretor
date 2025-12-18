@@ -78,6 +78,8 @@ export class GetEssayByIdUseCase {
       publicUrl,
       fileType: essay.fileType,
       status: essay.status,
+      grade: essay.grade,
+      writtenFeedback: essay.writtenFeedback,
       submittedAt: essay.submittedAt,
       correctedAt: essay.correctedAt,
       createdAt: essay.createdAt,
