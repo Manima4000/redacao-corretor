@@ -425,9 +425,12 @@ CREATE TABLE essays (
   task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   file_url VARCHAR(500) NOT NULL,          -- URL do arquivo (S3 ou local)
+  file_type VARCHAR(50) NOT NULL,          -- Tipo do arquivo (image/jpeg, image/png, application/pdf)
   status VARCHAR(20) DEFAULT 'pending',    -- pending, correcting, corrected
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   corrected_at TIMESTAMP,
+  grade DECIMAL(4,2) CHECK (grade >= 0 AND grade <= 10),  -- Nota da redação (0-10)
+  written_feedback TEXT,                   -- Comentários escritos da professora
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -1395,6 +1398,12 @@ npm start
 - [x] Repository e Use Cases de essays
 - [x] Status tracking (pending/correcting/corrected)
 - [x] Documentação Swagger para Essays
+- [x] Sistema de finalização de correção com nota e comentários escritos
+  - [x] Migration 007: Campos `grade` e `written_feedback` na tabela `essays`
+  - [x] FinalizeEssayCorrectionUseCase
+  - [x] Endpoint `PUT /api/essays/:essayId/finalize` (apenas professores)
+  - [x] Validação de nota (0-10) obrigatória
+  - [x] Comentários escritos opcionais
 
 ### 🎨 Fase 4: Anotações (Core Feature)
 - [x] Integrar Konva.js no frontend
@@ -1429,4 +1438,4 @@ npm start
 
 ---
 
-**Última atualização:** 2025-12-16
+**Última atualização:** 2025-12-18

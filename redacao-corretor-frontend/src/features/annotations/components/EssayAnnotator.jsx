@@ -359,14 +359,20 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
   };
 
   /**
-   * Finaliza correção
+   * Prepara para finalizar correção
+   * Salva anotações antes de abrir modal de finalização
    */
   const handleFinish = async () => {
     try {
-      await saveAndFinish();
+      // Salva anotações se houver mudanças não salvas
+      if (hasUnsavedChanges) {
+        await saveAnnotations();
+      }
+
+      // Chama callback (abre modal de finalização)
       if (onFinish) onFinish();
     } catch (error) {
-      console.error('Erro ao finalizar:', error);
+      console.error('Erro ao salvar anotações:', error);
     }
   };
 

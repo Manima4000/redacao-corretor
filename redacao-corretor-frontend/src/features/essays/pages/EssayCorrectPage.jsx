@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { essayService } from '../services/essayService';
 import { EssayAnnotator } from '@/features/annotations/components/EssayAnnotator';
+import { FinalizeEssayModal } from '../components/FinalizeEssayModal';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { useToast } from '@/shared/hooks/useToast';
 
@@ -24,6 +25,8 @@ export const EssayCorrectPage = () => {
   const [essay, setEssay] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   /**
    * Carrega dados da redação
@@ -50,19 +53,39 @@ export const EssayCorrectPage = () => {
   }, [essayId]);
 
   /**
-   * Callback ao finalizar correção
+   * Callback ao clicar em "Finalizar Correção" - abre modal
    */
   const handleFinish = () => {
-    toast.success('Correção finalizada! Redirecionando...');
+    setIsModalOpen(true);
+  };
 
-    // Redireciona para página de alunos da tarefa após 1.5s
-    setTimeout(() => {
-      if (essay?.task?.id && essay?.task?.classId) {
-        navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
-      } else {
-        navigate('/dashboard');
-      }
-    }, 1500);
+  /**
+   * Callback ao submeter o modal com nota e comentários
+   */
+  const handleFinalizeSubmit = async (grade, writtenFeedback) => {
+    try {
+      setIsFinalizing(true);
+
+      // Chama API para finalizar com nota e comentários
+      await essayService.finalizeEssay(essayId, grade, writtenFeedback);
+
+      toast.success('Correção finalizada com sucesso!');
+      setIsModalOpen(false);
+
+      // Redireciona para página de alunos da tarefa após 1.5s
+      setTimeout(() => {
+        if (essay?.task?.id && essay?.task?.classId) {
+          navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
+        } else {
+          navigate('/dashboard');
+        }
+      }, 1500);
+    } catch (err) {
+      console.error('Erro ao finalizar correção:', err);
+      toast.error(err.response?.data?.error || 'Erro ao finalizar correção');
+    } finally {
+      setIsFinalizing(false);
+    }
   };
 
   /**
@@ -158,6 +181,14 @@ export const EssayCorrectPage = () => {
         essayId={essayId}
         imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
         onFinish={handleFinish}
+      />
+
+      {/* Modal de Finalização */}
+      <FinalizeEssayModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onFinalize={handleFinalizeSubmit}
+        isLoading={isFinalizing}
       />
     </div>
   );

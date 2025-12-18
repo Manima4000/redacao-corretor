@@ -61,4 +61,19 @@ export const essayService = {
   async deleteEssay(essayId) {
     await api.delete(`/essays/${essayId}`);
   },
+
+  /**
+   * Finaliza correção de redação com nota e comentários
+   * @param {string} essayId - ID da redação
+   * @param {number} grade - Nota (0-10)
+   * @param {string} writtenFeedback - Comentários escritos (opcional)
+   * @returns {Promise<Object>} Redação atualizada
+   */
+  async finalizeEssay(essayId, grade, writtenFeedback) {
+    const response = await api.put(`/essays/${essayId}/finalize`, {
+      grade,
+      writtenFeedback,
+    });
+    return response.data.data;
+  },
 };

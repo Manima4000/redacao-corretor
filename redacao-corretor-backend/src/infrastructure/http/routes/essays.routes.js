@@ -5,6 +5,7 @@ import { GetStudentEssayByTaskUseCase } from '../../../application/use-cases/ess
 import { GetEssayByIdUseCase } from '../../../application/use-cases/essays/GetEssayByIdUseCase.js';
 import { GetEssayImageUseCase } from '../../../application/use-cases/essays/GetEssayImageUseCase.js';
 import { DeleteEssayUseCase } from '../../../application/use-cases/essays/DeleteEssayUseCase.js';
+import { FinalizeEssayCorrectionUseCase } from '../../../application/use-cases/essays/FinalizeEssayCorrectionUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
@@ -59,13 +60,19 @@ const deleteEssayUseCase = new DeleteEssayUseCase(
   fileStorageService
 );
 
+const finalizeEssayCorrectionUseCase = new FinalizeEssayCorrectionUseCase(
+  essayRepository,
+  taskRepository
+);
+
 // Controller
 const essayController = new EssayController(
   uploadEssayUseCase,
   getStudentEssayByTaskUseCase,
   getEssayByIdUseCase,
   getEssayImageUseCase,
-  deleteEssayUseCase
+  deleteEssayUseCase,
+  finalizeEssayCorrectionUseCase
 );
 
 /**
@@ -383,6 +390,104 @@ router.delete(
   '/:essayId',
   authMiddleware,
   (req, res, next) => essayController.delete(req, res, next)
+);
+
+/**
+ * @swagger
+ * /api/essays/{essayId}/finalize:
+ *   put:
+ *     summary: Finalizar correção de redação
+ *     description: Permite que professores finalizem a correção de uma redação, atribuindo nota e comentários escritos
+ *     tags: [Essays]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: essayId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da redação
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - grade
+ *             properties:
+ *               grade:
+ *                 type: number
+ *                 format: float
+ *                 minimum: 0
+ *                 maximum: 10
+ *                 description: Nota da redação (0 a 10)
+ *                 example: 8.5
+ *               writtenFeedback:
+ *                 type: string
+ *                 description: Comentários escritos da professora (opcional)
+ *                 example: Ótimo desenvolvimento da argumentação, mas atenção à pontuação.
+ *     responses:
+ *       200:
+ *         description: Correção finalizada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Correção finalizada com sucesso
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     taskId:
+ *                       type: string
+ *                       format: uuid
+ *                     studentId:
+ *                       type: string
+ *                       format: uuid
+ *                     fileUrl:
+ *                       type: string
+ *                     fileType:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [corrected]
+ *                       example: corrected
+ *                     submittedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     correctedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     grade:
+ *                       type: number
+ *                       format: float
+ *                       example: 8.5
+ *                     writtenFeedback:
+ *                       type: string
+ *                       example: Ótimo desenvolvimento da argumentação, mas atenção à pontuação.
+ *       400:
+ *         description: Nota não fornecida ou inválida
+ *       403:
+ *         description: Apenas professores podem finalizar correções
+ *       404:
+ *         description: Redação não encontrada
+ */
+router.put(
+  '/:essayId/finalize',
+  authMiddleware,
+  requireTeacher,
+  (req, res, next) => essayController.finalize(req, res, next)
 );
 
 export default router;

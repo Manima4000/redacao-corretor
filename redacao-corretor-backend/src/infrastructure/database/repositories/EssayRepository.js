@@ -34,7 +34,9 @@ export class EssayRepository extends IEssayRepository {
         file_type as "fileType",
         status,
         submitted_at as "submittedAt",
-        corrected_at as "correctedAt"
+        corrected_at as "correctedAt",
+        grade,
+        written_feedback as "writtenFeedback"
     `;
 
     const values = [taskId, studentId, fileUrl, fileType, 'pending'];
@@ -58,9 +60,12 @@ export class EssayRepository extends IEssayRepository {
         e.task_id as "taskId",
         e.student_id as "studentId",
         e.file_url as "fileUrl",
+        e.file_type as "fileType",
         e.status,
         e.submitted_at as "submittedAt",
         e.corrected_at as "correctedAt",
+        e.grade,
+        e.written_feedback as "writtenFeedback",
         s.full_name as "studentName",
         s.email as "studentEmail",
         t.title as "taskTitle"
@@ -90,9 +95,12 @@ export class EssayRepository extends IEssayRepository {
         e.task_id as "taskId",
         e.student_id as "studentId",
         e.file_url as "fileUrl",
+        e.file_type as "fileType",
         e.status,
         e.submitted_at as "submittedAt",
-        e.corrected_at as "correctedAt"
+        e.corrected_at as "correctedAt",
+        e.grade,
+        e.written_feedback as "writtenFeedback"
       FROM essays e
       WHERE e.task_id = $1 AND e.student_id = $2
     `;
@@ -116,9 +124,12 @@ export class EssayRepository extends IEssayRepository {
         e.task_id as "taskId",
         e.student_id as "studentId",
         e.file_url as "fileUrl",
+        e.file_type as "fileType",
         e.status,
         e.submitted_at as "submittedAt",
         e.corrected_at as "correctedAt",
+        e.grade,
+        e.written_feedback as "writtenFeedback",
         s.full_name as "studentName",
         s.email as "studentEmail",
         s.enrollment_number as "enrollmentNumber"
@@ -168,9 +179,12 @@ export class EssayRepository extends IEssayRepository {
         e.task_id as "taskId",
         e.student_id as "studentId",
         e.file_url as "fileUrl",
+        e.file_type as "fileType",
         e.status,
         e.submitted_at as "submittedAt",
         e.corrected_at as "correctedAt",
+        e.grade,
+        e.written_feedback as "writtenFeedback",
         t.title as "taskTitle",
         t.description as "taskDescription",
         t.deadline as "taskDeadline"
@@ -205,12 +219,51 @@ export class EssayRepository extends IEssayRepository {
         task_id as "taskId",
         student_id as "studentId",
         file_url as "fileUrl",
+        file_type as "fileType",
         status,
         submitted_at as "submittedAt",
-        corrected_at as "correctedAt"
+        corrected_at as "correctedAt",
+        grade,
+        written_feedback as "writtenFeedback"
     `;
 
     const result = await query(sql, [status, essayId]);
+
+    return result.rows[0];
+  }
+
+  /**
+   * Finaliza correção da redação (atualiza nota, feedback e status)
+   *
+   * @async
+   * @param {string} essayId - ID da redação
+   * @param {number} grade - Nota (0-10)
+   * @param {string} writtenFeedback - Comentários escritos (opcional)
+   * @returns {Promise<Object>} Redação atualizada
+   */
+  async finalize(essayId, grade, writtenFeedback) {
+    const sql = `
+      UPDATE essays
+      SET
+        grade = $1,
+        written_feedback = $2,
+        status = 'corrected',
+        corrected_at = CURRENT_TIMESTAMP
+      WHERE id = $3
+      RETURNING
+        id,
+        task_id as "taskId",
+        student_id as "studentId",
+        file_url as "fileUrl",
+        file_type as "fileType",
+        status,
+        submitted_at as "submittedAt",
+        corrected_at as "correctedAt",
+        grade,
+        written_feedback as "writtenFeedback"
+    `;
+
+    const result = await query(sql, [grade, writtenFeedback, essayId]);
 
     return result.rows[0];
   }

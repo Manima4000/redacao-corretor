@@ -79,6 +79,19 @@ export class IEssayRepository {
   }
 
   /**
+   * Finaliza correção da redação (atualiza nota, feedback e status para corrected)
+   *
+   * @async
+   * @param {string} essayId - ID da redação
+   * @param {number} grade - Nota (0-10)
+   * @param {string} writtenFeedback - Comentários escritos da professora (opcional)
+   * @returns {Promise<Object>} Redação atualizada
+   */
+  async finalize(essayId, grade, writtenFeedback) {
+    throw new Error('Method finalize() must be implemented');
+  }
+
+  /**
    * Deleta uma redação
    *
    * @async

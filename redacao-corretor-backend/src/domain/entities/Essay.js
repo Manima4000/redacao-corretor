@@ -1,5 +1,5 @@
 export class Essay {
-  constructor({ id, taskId, studentId, fileUrl, fileType, status, submittedAt, correctedAt }) {
+  constructor({ id, taskId, studentId, fileUrl, fileType, status, submittedAt, correctedAt, grade, writtenFeedback }) {
     this.id = id;
     this.taskId = taskId;
     this.studentId = studentId;
@@ -8,6 +8,8 @@ export class Essay {
     this.status = status || 'pending'; // 'pending' | 'correcting' | 'corrected'
     this.submittedAt = submittedAt;
     this.correctedAt = correctedAt;
+    this.grade = grade;
+    this.writtenFeedback = writtenFeedback;
   }
 
   validate() {
@@ -33,6 +35,13 @@ export class Essay {
       throw new Error('Status inválido');
     }
 
+    // Validar nota se fornecida
+    if (this.grade !== null && this.grade !== undefined) {
+      if (typeof this.grade !== 'number' || this.grade < 0 || this.grade > 10) {
+        throw new Error('Nota deve ser um número entre 0 e 10');
+      }
+    }
+
     return true;
   }
 
@@ -41,8 +50,18 @@ export class Essay {
     this.updatedAt = new Date();
   }
 
-  markAsCorrected() {
+  markAsCorrected(grade, writtenFeedback) {
+    if (grade === null || grade === undefined) {
+      throw new Error('Nota é obrigatória para finalizar a correção');
+    }
+
+    if (typeof grade !== 'number' || grade < 0 || grade > 10) {
+      throw new Error('Nota deve ser um número entre 0 e 10');
+    }
+
     this.status = 'corrected';
+    this.grade = grade;
+    this.writtenFeedback = writtenFeedback;
     this.correctedAt = new Date();
     this.updatedAt = new Date();
   }
@@ -65,6 +84,8 @@ export class Essay {
       status: this.status,
       submittedAt: this.submittedAt,
       correctedAt: this.correctedAt,
+      grade: this.grade,
+      writtenFeedback: this.writtenFeedback,
     };
   }
 }

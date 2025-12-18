@@ -18,13 +18,15 @@ export class EssayController {
    * @param {GetEssayByIdUseCase} getEssayByIdUseCase - Use case busca redação por ID
    * @param {GetEssayImageUseCase} getEssayImageUseCase - Use case busca imagem da redação
    * @param {DeleteEssayUseCase} deleteEssayUseCase - Use case de delete
+   * @param {FinalizeEssayCorrectionUseCase} finalizeEssayCorrectionUseCase - Use case finalizar correção
    */
-  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, getEssayByIdUseCase, getEssayImageUseCase, deleteEssayUseCase) {
+  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, getEssayByIdUseCase, getEssayImageUseCase, deleteEssayUseCase, finalizeEssayCorrectionUseCase) {
     this.uploadEssayUseCase = uploadEssayUseCase;
     this.getStudentEssayByTaskUseCase = getStudentEssayByTaskUseCase;
     this.getEssayByIdUseCase = getEssayByIdUseCase;
     this.getEssayImageUseCase = getEssayImageUseCase;
     this.deleteEssayUseCase = deleteEssayUseCase;
+    this.finalizeEssayCorrectionUseCase = finalizeEssayCorrectionUseCase;
 
     // Bind methods
     this.upload = this.upload.bind(this);
@@ -32,6 +34,7 @@ export class EssayController {
     this.getById = this.getById.bind(this);
     this.getEssayImage = this.getEssayImage.bind(this);
     this.delete = this.delete.bind(this);
+    this.finalize = this.finalize.bind(this);
   }
 
   /**
@@ -275,6 +278,48 @@ export class EssayController {
       res.status(200).json({
         success: true,
         message: 'Redação deletada com sucesso',
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Finalizar correção de redação (apenas professores)
+   * PUT /api/essays/:essayId/finalize
+   *
+   * @async
+   * @param {Request} req - Request do Express
+   * @param {Response} res - Response do Express
+   * @param {NextFunction} next - Next middleware
+   */
+  async finalize(req, res, next) {
+    try {
+      const { essayId } = req.params;
+      const { grade, writtenFeedback } = req.body;
+      const userId = req.user.id;
+      const userType = req.user.userType;
+
+      // Validar que grade foi fornecido
+      if (grade === null || grade === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: 'Nota (grade) é obrigatória',
+        });
+      }
+
+      const essay = await this.finalizeEssayCorrectionUseCase.execute({
+        essayId,
+        grade: parseFloat(grade),
+        writtenFeedback: writtenFeedback || null,
+        userId,
+        userType,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Correção finalizada com sucesso',
+        data: essay,
       });
     } catch (error) {
       next(error);
