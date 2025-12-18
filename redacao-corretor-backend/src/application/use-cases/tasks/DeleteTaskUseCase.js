@@ -7,7 +7,7 @@ import { NotFoundError, ForbiddenError } from '../../../utils/errors.js';
  * 1. Validar que a tarefa existe
  * 2. Verificar permissões (apenas professor dono)
  * 3. Deletar arquivos das redações do Google Drive
- * 4. Deletar tarefa do banco (CASCADE deleta essays, annotations, comments)
+ * 4. Deletar tarefa do banco (CASCADE deleta essays e annotations)
  *
  * Segue SOLID:
  * - SRP: Apenas deleta tarefas
@@ -71,7 +71,7 @@ export class DeleteTaskUseCase {
 
     // 5. Deletar a tarefa do banco
     // CASCADE vai deletar automaticamente:
-    // - Essays (com annotations e comments via CASCADE)
+    // - Essays (com annotations via CASCADE)
     // - Task_Classes
     await this.taskRepository.delete(taskId);
 

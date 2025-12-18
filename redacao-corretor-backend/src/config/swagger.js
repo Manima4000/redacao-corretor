@@ -266,14 +266,6 @@ const options = {
         name: 'Annotations',
         description: 'Anotações nas redações',
       },
-      {
-        name: 'Comments',
-        description: 'Chat entre professora e aluno',
-      },
-      {
-        name: 'Notifications',
-        description: 'Notificações do sistema',
-      },
     ],
   },
   apis: ['./src/infrastructure/http/routes/*.js'], // Caminho para os arquivos com anotações JSDoc

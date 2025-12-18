@@ -4,11 +4,15 @@ import { GetClassByIdUseCase } from '../../../application/use-cases/classes/GetC
 import { UpdateClassUseCase } from '../../../application/use-cases/classes/UpdateClassUseCase.js';
 import { DeleteClassUseCase } from '../../../application/use-cases/classes/DeleteClassUseCase.js';
 import { AddStudentToClassUseCase } from '../../../application/use-cases/classes/AddStudentToClassUseCase.js';
+import { DeleteTaskUseCase } from '../../../application/use-cases/tasks/DeleteTaskUseCase.js';
 import { CreateClassDTO } from '../../../application/dtos/CreateClassDTO.js';
 import { UpdateClassDTO } from '../../../application/dtos/UpdateClassDTO.js';
 import { ClassRepository } from '../../database/repositories/ClassRepository.js';
 import { TeacherRepository } from '../../database/repositories/TeacherRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
+import { TaskRepository } from '../../database/repositories/TaskRepository.js';
+import { EssayRepository } from '../../database/repositories/EssayRepository.js';
+import { GoogleDriveStorageService } from '../../services/GoogleDriveStorageService.js';
 
 /**
  * Controller para gerenciamento de turmas
@@ -20,6 +24,9 @@ export class ClassController {
     this.classRepository = new ClassRepository();
     this.teacherRepository = new TeacherRepository();
     this.studentRepository = new StudentRepository();
+    this.taskRepository = new TaskRepository();
+    this.essayRepository = new EssayRepository();
+    this.fileStorageService = new GoogleDriveStorageService();
 
     this.createClassUseCase = new CreateClassUseCase(
       this.classRepository,
@@ -32,7 +39,18 @@ export class ClassController {
 
     this.updateClassUseCase = new UpdateClassUseCase(this.classRepository);
 
-    this.deleteClassUseCase = new DeleteClassUseCase(this.classRepository);
+    // DeleteTaskUseCase é necessário para DeleteClassUseCase
+    this.deleteTaskUseCase = new DeleteTaskUseCase(
+      this.taskRepository,
+      this.essayRepository,
+      this.fileStorageService
+    );
+
+    this.deleteClassUseCase = new DeleteClassUseCase(
+      this.classRepository,
+      this.taskRepository,
+      this.deleteTaskUseCase
+    );
 
     this.addStudentToClassUseCase = new AddStudentToClassUseCase(
       this.classRepository,
