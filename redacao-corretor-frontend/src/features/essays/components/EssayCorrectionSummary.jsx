@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { EssayGradeCard } from './EssayGradeCard';
 import { EssayFeedbackCard } from './EssayFeedbackCard';
 
@@ -19,6 +20,8 @@ import { EssayFeedbackCard } from './EssayFeedbackCard';
  * @param {string} props.writtenFeedback - Comentários escritos (opcional)
  */
 export const EssayCorrectionSummary = ({ grade, writtenFeedback }) => {
+  const [showFeedback, setShowFeedback] = useState(false);
+
   // Se não há nota nem feedback, não renderiza nada
   const hasGrade = grade !== null && grade !== undefined;
   const hasFeedback = writtenFeedback && writtenFeedback.trim();
@@ -28,14 +31,32 @@ export const EssayCorrectionSummary = ({ grade, writtenFeedback }) => {
   return (
     <div className="bg-white border-b border-gray-200 px-6 py-4">
       <div className="max-w-4xl mx-auto">
-        {/* Nota e Comentários */}
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Container Principal */}
+        <div className="flex flex-col items-center gap-6">
+          {/* Nota (Centralizada) */}
           <EssayGradeCard grade={grade} />
-          <EssayFeedbackCard feedback={writtenFeedback} />
+
+          {/* Botão para ver comentários (se houver) */}
+          {hasFeedback && (
+            <button
+              onClick={() => setShowFeedback(!showFeedback)}
+              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition-colors bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100"
+            >
+              <i className={`bi ${showFeedback ? 'bi-chevron-up' : 'bi-chat-left-text'}`}></i>
+              {showFeedback ? 'Ocultar comentários' : 'Ver comentários da professora'}
+            </button>
+          )}
+
+          {/* Comentários (Collapsible) */}
+          {hasFeedback && showFeedback && (
+            <div className="w-full animate-fade-in">
+              <EssayFeedbackCard feedback={writtenFeedback} />
+            </div>
+          )}
         </div>
 
         {/* Dica para o aluno */}
-        <div className="mt-4 flex items-start gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="mt-6 flex items-start gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
           <i className="bi bi-info-circle text-blue-600 shrink-0 mt-0.5"></i>
           <p>
             Além dos comentários acima, veja as anotações visuais (marcações em vermelho, azul, etc.)
