@@ -103,7 +103,7 @@ export class EssayRepository extends IEssayRepository {
   }
 
   /**
-   * Lista redações de uma tarefa
+   * Lista redações de uma tarefa (com dados do aluno)
    *
    * @async
    * @param {string} taskId - ID da tarefa
@@ -126,6 +126,27 @@ export class EssayRepository extends IEssayRepository {
       INNER JOIN students s ON e.student_id = s.id
       WHERE e.task_id = $1
       ORDER BY e.submitted_at DESC
+    `;
+
+    const result = await query(sql, [taskId]);
+
+    return result.rows;
+  }
+
+  /**
+   * Busca redações de uma tarefa (apenas campos essenciais para exclusão)
+   *
+   * @async
+   * @param {string} taskId - ID da tarefa
+   * @returns {Promise<Array>} Lista de redações com id e fileUrl
+   */
+  async findByTaskId(taskId) {
+    const sql = `
+      SELECT
+        id,
+        file_url as "fileUrl"
+      FROM essays
+      WHERE task_id = $1
     `;
 
     const result = await query(sql, [taskId]);

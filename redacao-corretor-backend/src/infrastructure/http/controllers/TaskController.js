@@ -12,6 +12,7 @@ import { ClassRepository } from '../../database/repositories/ClassRepository.js'
 import { TeacherRepository } from '../../database/repositories/TeacherRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
+import { GoogleDriveStorageService } from '../../services/GoogleDriveStorageService.js';
 
 /**
  * Controller para gerenciamento de tarefas
@@ -25,6 +26,7 @@ export class TaskController {
     this.teacherRepository = new TeacherRepository();
     this.studentRepository = new StudentRepository();
     this.essayRepository = new EssayRepository();
+    this.fileStorageService = new GoogleDriveStorageService();
 
     this.createTaskUseCase = new CreateTaskUseCase(
       this.taskRepository,
@@ -41,7 +43,11 @@ export class TaskController {
 
     this.updateTaskUseCase = new UpdateTaskUseCase(this.taskRepository);
 
-    this.deleteTaskUseCase = new DeleteTaskUseCase(this.taskRepository);
+    this.deleteTaskUseCase = new DeleteTaskUseCase(
+      this.taskRepository,
+      this.essayRepository,
+      this.fileStorageService
+    );
 
     this.getTaskStudentsUseCase = new GetTaskStudentsUseCase(
       this.taskRepository
