@@ -54,15 +54,6 @@ export const EssayCorrectionSummary = ({ grade, writtenFeedback }) => {
             </div>
           )}
         </div>
-
-        {/* Dica para o aluno */}
-        <div className="mt-6 flex items-start gap-2 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <i className="bi bi-info-circle text-blue-600 shrink-0 mt-0.5"></i>
-          <p>
-            Além dos comentários acima, veja as anotações visuais (marcações em vermelho, azul, etc.)
-            diretamente na sua redação abaixo. Role para visualizar toda a correção.
-          </p>
-        </div>
       </div>
     </div>
   );

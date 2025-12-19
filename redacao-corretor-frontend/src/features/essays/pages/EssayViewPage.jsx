@@ -193,11 +193,14 @@ export const EssayViewPage = () => {
       )}
 
       {/* Canvas de visualização (read-only) */}
-      <EssayAnnotator
-        essayId={essayId}
-        imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
-        readOnly={true}
-      />
+      <div className="flex-1 min-h-0 relative">
+        <EssayAnnotator
+          essayId={essayId}
+          imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
+          readOnly={true}
+          className="h-full"
+        />
+      </div>
     </div>
   );
 };

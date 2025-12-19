@@ -30,7 +30,7 @@ import { ConfirmationModal } from '@/shared/components/ui/ConfirmationModal';
  * @param {boolean} [props.readOnly=false] - Se true, apenas visualiza (sem edição)
  * @param {Function} [props.onFinish] - Callback ao finalizar correção
  */
-export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = false, onFinish }) => {
+export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = false, onFinish, className = '' }) => {
   // Estados do canvas
   const [image, setImage] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -394,7 +394,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className={`flex items-center justify-center h-full bg-gray-100 ${className}`}>
         <div className="text-center">
           <Spinner size="lg" />
           <p className="mt-4 text-gray-600">Carregando anotações...</p>
@@ -405,7 +405,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
 
   if (imageError) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className={`flex items-center justify-center h-full bg-gray-100 ${className}`}>
         <div className="text-center max-w-2xl px-6">
           <div className="text-6xl mb-4">🖼️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Erro ao Carregar Imagem</h2>
@@ -431,7 +431,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
 
   if (!imageLoaded) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className={`flex items-center justify-center h-full bg-gray-100 ${className}`}>
         <div className="text-center">
           <Spinner size="lg" />
           <p className="mt-4 text-gray-600">Carregando imagem da redação...</p>
@@ -442,7 +442,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className={`flex flex-col h-full bg-gray-100 ${className}`}>
       {/* Toolbar */}
       {!readOnly && (
         <ToolbarAnnotation
@@ -471,7 +471,7 @@ export const EssayAnnotator = ({ essayId, imageUrl, pageNumber = 1, readOnly = f
       {/* Canvas Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-hidden relative bg-gray-200"
+        className="flex-1 overflow-auto relative bg-gray-200"
         style={{ touchAction: 'none' }} // Previne gestos padrão
       >
         {/* Zoom Controls */}
