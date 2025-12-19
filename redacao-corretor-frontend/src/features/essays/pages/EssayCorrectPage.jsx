@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useEssay } from '../hooks/useEssay';
 import { essayService } from '../services/essayService';
 import { EssayAnnotator } from '@/features/annotations/components/EssayAnnotator';
 import { FinalizeEssayModal } from '../components/FinalizeEssayModal';
@@ -7,13 +8,20 @@ import { Spinner } from '@/shared/components/ui/Spinner';
 import { useToast } from '@/shared/hooks/useToast';
 
 /**
- * Página de correção de redação (apenas professora)
+ * Página de correção de redação (REFATORADO)
  *
- * Features:
- * - Carrega dados da redação
- * - Exibe informações do aluno e tarefa
- * - Usa EssayAnnotator para correção
- * - Redireciona após finalizar
+ * Responsabilidades:
+ * - Exibir informações do aluno e tarefa (header)
+ * - Renderizar componente de anotação (EssayAnnotator)
+ * - Gerenciar modal de finalização
+ * - Redirecionar após finalizar
+ *
+ * Segue SOLID:
+ * - SRP: Apenas UI/UX (fetch delegado ao hook useEssay)
+ * - Hook useEssay gerencia estado e carregamento
+ *
+ * ANTES: 195 linhas com fetch, estado, loading
+ * DEPOIS: ~130 linhas apenas com UI
  *
  * Rota: /essays/:essayId/correct
  */
@@ -22,35 +30,12 @@ export const EssayCorrectPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [essay, setEssay] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Hook customizado (gerencia fetch e estado)
+  const { essay, isLoading, error } = useEssay(essayId);
+
+  // Estado local (apenas UI)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
-
-  /**
-   * Carrega dados da redação
-   */
-  useEffect(() => {
-    const loadEssay = async () => {
-      try {
-        setIsLoading(true);
-        const data = await essayService.getEssayById(essayId);
-        setEssay(data);
-      } catch (err) {
-        console.error('Erro ao carregar redação:', err);
-        setError(err.response?.data?.error || 'Erro ao carregar redação');
-        toast.error('Erro ao carregar redação');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (essayId) {
-      loadEssay();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [essayId]);
 
   /**
    * Callback ao clicar em "Finalizar Correção" - abre modal

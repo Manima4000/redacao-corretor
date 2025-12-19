@@ -1,61 +1,44 @@
 import { Button } from '@/shared/components/ui/Button';
+import { useAnnotationContext } from './AnnotationProvider';
 
 /**
- * Toolbar para anotações de redação
+ * Toolbar para anotações de redação (REFATORADO)
  *
- * Features:
- * - Seleção de ferramenta (caneta, marca-texto, marcador)
- * - Seleção de cor (vermelho, azul, verde, preto)
- * - Seleção de tamanho (fino, médio, grosso)
- * - Modo borracha (toggle)
- * - Desfazer última linha
- * - Limpar todas as anotações
- * - Salvar manual
- * - Finalizar correção
- * - Indicadores de status
+ * Responsabilidades:
+ * - Exibir ferramentas de desenho (caneta, marca-texto, marcador)
+ * - Exibir seletor de cor e tamanho
+ * - Botões de ação (desfazer, limpar, salvar, finalizar)
+ * - Indicadores de status (salvando, última salvamento)
+ *
+ * Segue SOLID:
+ * - SRP: Apenas UI da toolbar (estado vem do Context)
+ * - Sem prop drilling (usa useAnnotationContext)
+ *
+ * ANTES: Recebia 17 props
+ * DEPOIS: Recebe apenas 2 callbacks (onClear, onFinish)
  *
  * @param {Object} props
- * @param {string} props.currentTool - Ferramenta atual ('pen', 'highlighter', 'marker')
- * @param {Function} props.onToolChange - Callback ao mudar ferramenta
- * @param {string} props.color - Cor atual
- * @param {Function} props.onColorChange - Callback ao mudar cor
- * @param {number} props.size - Tamanho atual
- * @param {Function} props.onSizeChange - Callback ao mudar tamanho
- * @param {boolean} props.isEraser - Se está em modo borracha
- * @param {Function} props.onEraserToggle - Toggle modo borracha
- * @param {Function} props.onUndo - Desfazer última linha
- * @param {Function} props.onClear - Limpar tudo
- * @param {Function} props.onSave - Salvar manual
- * @param {Function} props.onFinish - Finalizar correção
- * @param {boolean} props.isSaving - Se está salvando
- * @param {boolean} props.hasUnsavedChanges - Se tem mudanças não salvas
- * @param {Date} props.lastSaved - Última vez que salvou
- * @param {number} props.linesCount - Quantidade de linhas
- * @param {boolean} props.canUndo - Se pode desfazer
- * @param {string} props.pointerType - Tipo de pointer ('pen', 'touch', 'mouse')
- * @param {number} props.scale - Escala de zoom
+ * @param {Function} props.onClear - Callback ao limpar (gerenciado pelo pai - modal)
+ * @param {Function} props.onFinish - Callback ao finalizar (gerenciado pelo pai - modal)
  */
-export const ToolbarAnnotation = ({
-  currentTool,
-  onToolChange,
-  color,
-  onColorChange,
-  size,
-  onSizeChange,
-  isEraser,
-  onEraserToggle,
-  onUndo,
-  onClear,
-  onSave,
-  onFinish,
-  isSaving,
-  hasUnsavedChanges,
-  lastSaved,
-  linesCount,
-  canUndo,
-  pointerType,
-  scale,
-}) => {
+export const ToolbarAnnotation = ({ onClear, onFinish }) => {
+  // Context de anotações (substitui todas as props!)
+  const {
+    currentTool,
+    setCurrentTool,
+    color,
+    setColor,
+    size,
+    setSize,
+    isEraser,
+    toggleEraser,
+    undo,
+    saveAnnotations,
+    isSaving,
+    hasUnsavedChanges,
+    lastSaved,
+    lines,
+  } = useAnnotationContext();
   const tools = [
     { value: 'pen', label: 'Caneta', icon: 'bi-pen-fill' },
     { value: 'highlighter', label: 'Marca-texto', icon: 'bi-highlighter' },
@@ -85,45 +68,17 @@ export const ToolbarAnnotation = ({
     return lastSaved.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const getPointerIcon = () => {
-    switch (pointerType) {
-      case 'pen':
-        return <i className="bi bi-pencil-fill"></i>;
-      case 'touch':
-        return <i className="bi bi-hand-index-thumb-fill"></i>;
-      case 'mouse':
-        return <i className="bi bi-mouse-fill"></i>;
-      default:
-        return '?';
-    }
-  };
+  const canUndo = lines.length > 0;
 
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
       {/* Status Bar */}
       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between text-sm">
         <div className="flex items-center gap-4">
-          {/* Pointer Type */}
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Input:</span>
-            <span className="font-medium">{getPointerIcon()}</span>
-            <span className="text-gray-700">
-              {pointerType === 'pen' && 'Caneta'}
-              {pointerType === 'touch' && 'Dedo'}
-              {pointerType === 'mouse' && 'Mouse'}
-            </span>
-          </div>
-
-          {/* Zoom */}
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Zoom:</span>
-            <span className="font-medium text-gray-700">{Math.round(scale * 100)}%</span>
-          </div>
-
           {/* Lines Count */}
           <div className="flex items-center gap-2">
             <span className="text-gray-500">Linhas:</span>
-            <span className="font-medium text-gray-700">{linesCount}</span>
+            <span className="font-medium text-gray-700">{lines.length}</span>
           </div>
         </div>
 
@@ -161,7 +116,7 @@ export const ToolbarAnnotation = ({
             {tools.map((tool) => (
               <button
                 key={tool.value}
-                onClick={() => onToolChange(tool.value)}
+                onClick={() => setCurrentTool(tool.value)}
                 className={`px-3 py-2 rounded flex items-center gap-2 text-sm font-medium transition-colors ${
                   currentTool === tool.value && !isEraser
                     ? 'bg-blue-600 text-white'
@@ -183,7 +138,7 @@ export const ToolbarAnnotation = ({
             {colors.map((c) => (
               <button
                 key={c.value}
-                onClick={() => onColorChange(c.value)}
+                onClick={() => setColor(c.value)}
                 className={`w-8 h-8 rounded-full border-2 transition-all ${c.bg} ${
                   color === c.value && !isEraser
                     ? 'border-gray-900 ring-2 ring-gray-300'
@@ -202,7 +157,7 @@ export const ToolbarAnnotation = ({
             {sizes.map((s) => (
               <button
                 key={s.value}
-                onClick={() => onSizeChange(s.value)}
+                onClick={() => setSize(s.value)}
                 className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                   size === s.value && !isEraser
                     ? 'bg-blue-600 text-white'
@@ -220,7 +175,7 @@ export const ToolbarAnnotation = ({
 
         {/* Eraser */}
         <Button
-          onClick={onEraserToggle}
+          onClick={toggleEraser}
           variant={isEraser ? 'primary' : 'secondary'}
           size="sm"
           title="Borracha (ou use o botão da caneta)"
@@ -230,7 +185,7 @@ export const ToolbarAnnotation = ({
         </Button>
 
         {/* Undo */}
-        <Button onClick={onUndo} variant="secondary" size="sm" disabled={!canUndo} title="Desfazer (Ctrl+Z)">
+        <Button onClick={undo} variant="secondary" size="sm" disabled={!canUndo} title="Desfazer (Ctrl+Z)">
           <i className="bi bi-arrow-counterclockwise me-2"></i>
           Desfazer
         </Button>
@@ -240,7 +195,7 @@ export const ToolbarAnnotation = ({
           onClick={onClear}
           variant="secondary"
           size="sm"
-          disabled={linesCount === 0}
+          disabled={lines.length === 0}
           title="Limpar todas as anotações"
         >
           <i className="bi bi-trash-fill me-2"></i>
@@ -252,7 +207,7 @@ export const ToolbarAnnotation = ({
 
         {/* Save */}
         <Button
-          onClick={onSave}
+          onClick={saveAnnotations}
           variant="secondary"
           size="sm"
           disabled={isSaving || !hasUnsavedChanges}
