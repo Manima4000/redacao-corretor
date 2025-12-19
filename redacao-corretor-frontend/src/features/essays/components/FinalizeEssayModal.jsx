@@ -142,7 +142,7 @@ export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading }) =
         {/* Informação Adicional */}
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex gap-2 text-sm text-blue-800">
-            <i className="bi bi-info-circle flex-shrink-0 mt-0.5"></i>
+            <i className="bi bi-info-circle shrink-0 mt-0.5"></i>
             <p>
               Ao finalizar, as anotações serão salvas automaticamente e a redação será marcada como corrigida.
               O aluno poderá visualizar a nota e os comentários.
