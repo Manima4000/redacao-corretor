@@ -7,6 +7,7 @@ import { RequireTeacher } from '@/features/auth/components/RequireTeacher';
 // Pages
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { DashboardPage } from '@/features/dashboard/pages/DashboardPage';
+import { ProfilePage } from '@/features/profile/pages/ProfilePage';
 import { ClassesPage } from '@/features/classes/pages/ClassesPage';
 import { ClassTasksPage } from '@/features/classes/pages/ClassTasksPage';
 import { TaskStudentsPage } from '@/features/tasks/pages/TaskStudentsPage';
@@ -63,6 +64,18 @@ export const AppRouter = () => {
             <PrivateRoute>
               <MainLayout>
                 <StudentHomePage />
+              </MainLayout>
+            </PrivateRoute>
+          }
+        />
+
+        {/* Profile - Both Student and Teacher */}
+        <Route
+          path={ROUTES.PROFILE}
+          element={
+            <PrivateRoute>
+              <MainLayout>
+                <ProfilePage />
               </MainLayout>
             </PrivateRoute>
           }

@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth.routes.js';
+import profileRoutes from './profile.routes.js';
 import classRoutes from './classes.routes.js';
 import taskRoutes from './tasks.routes.js';
 import essayRoutes from './essays.routes.js';
@@ -14,6 +15,7 @@ const router = Router();
  * Rotas da aplicação
  */
 router.use('/auth', authRoutes);
+router.use('/profile', profileRoutes);
 router.use('/classes', classRoutes);
 router.use('/students', studentRoutes);
 router.use('/tasks', taskRoutes);
