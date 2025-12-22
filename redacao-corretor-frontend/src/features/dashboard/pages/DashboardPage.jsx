@@ -1,11 +1,14 @@
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useDashboardStats } from '../hooks/useDashboardStats';
+import { DashboardStatsCard } from '../components/DashboardStatsCard';
 
 /**
- * Página Dashboard (Placeholder)
- * Será implementada futuramente com estatísticas
+ * Página Dashboard
+ * Exibe estatísticas relevantes para o usuário (Professor ou Aluno)
  */
 export const DashboardPage = () => {
   const { user, isTeacher } = useAuth();
+  const { stats, loading } = useDashboardStats();
 
   return (
     <div className="p-8">
@@ -22,43 +25,44 @@ export const DashboardPage = () => {
         </p>
       </div>
 
-      {/* Content Placeholder */}
+      {/* Content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-4xl mb-3"><i className="bi bi-people-fill text-blue-600"></i></div>
-          <h3 className="text-lg font-semibold text-gray-900">Turmas</h3>
-          <p className="text-3xl font-bold text-blue-600 mt-2">0</p>
-          <p className="text-sm text-gray-600 mt-1">turmas ativas</p>
-        </div>
+        <DashboardStatsCard
+          icon="bi bi-people-fill"
+          title="Turmas"
+          value={stats.classCount}
+          label={isTeacher() ? 'turmas ativas' : 'sua turma'}
+          color="text-blue-600"
+          loading={loading}
+        />
 
-        {/* Card 2 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-4xl mb-3"><i className="bi bi-clipboard-data-fill text-green-600"></i></div>
-          <h3 className="text-lg font-semibold text-gray-900">Tarefas</h3>
-          <p className="text-3xl font-bold text-green-600 mt-2">0</p>
-          <p className="text-sm text-gray-600 mt-1">tarefas criadas</p>
-        </div>
+        <DashboardStatsCard
+          icon="bi bi-clipboard-data-fill"
+          title="Tarefas"
+          value={stats.taskCount}
+          label={isTeacher() ? 'tarefas criadas' : 'tarefas atribuídas'}
+          color="text-green-600"
+          loading={loading}
+        />
 
-        {/* Card 3 */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <div className="text-4xl mb-3"><i className="bi bi-file-earmark-text-fill text-purple-600"></i></div>
-          <h3 className="text-lg font-semibold text-gray-900">Redações</h3>
-          <p className="text-3xl font-bold text-purple-600 mt-2">0</p>
-          <p className="text-sm text-gray-600 mt-1">
-            {isTeacher() ? 'aguardando correção' : 'enviadas'}
-          </p>
-        </div>
+        <DashboardStatsCard
+          icon="bi bi-file-earmark-text-fill"
+          title="Redações"
+          value={isTeacher() ? stats.pendingEssaysCount : stats.essayCount}
+          label={isTeacher() ? 'aguardando correção' : 'enviadas'}
+          color="text-purple-600"
+          loading={loading}
+        />
       </div>
 
       {/* Info */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-blue-900 mb-2">
-          <i className="bi bi-rocket-takeoff-fill"></i> Dashboard em Desenvolvimento
+          <i className="bi bi-rocket-takeoff-fill"></i> Resumo Geral
         </h3>
         <p className="text-blue-800">
-          Esta página será implementada futuramente com estatísticas detalhadas,
-          gráficos e atalhos rápidos para suas ações mais frequentes.
+           Aqui você encontra um resumo rápido das suas atividades no sistema. 
+           Utilize o menu lateral para acessar o gerenciamento completo de cada área.
         </p>
       </div>
     </div>

@@ -6,6 +6,7 @@ import essayRoutes from './essays.routes.js';
 import annotationRoutes from './annotations.routes.js';
 import testRoutes from './test.routes.js';
 import studentRoutes from './students.routes.js';
+import { dashboardRoutes } from './dashboard.routes.js';
 
 const router = Router();
 
@@ -18,6 +19,7 @@ router.use('/students', studentRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/essays', essayRoutes);
 router.use('/essays', annotationRoutes); // Sub-rotas: /essays/:essayId/annotations
+router.use('/dashboard', dashboardRoutes);
 
 // Rotas de teste (apenas para desenvolvimento)
 if (process.env.NODE_ENV === 'development') {

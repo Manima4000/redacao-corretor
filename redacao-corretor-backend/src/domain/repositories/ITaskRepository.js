@@ -20,6 +20,14 @@ export class ITaskRepository {
     throw new Error('Method not implemented');
   }
 
+  async countByTeacherId(teacherId) {
+    throw new Error('Method not implemented');
+  }
+
+  async countByClassId(classId) {
+    throw new Error('Method not implemented');
+  }
+
   async update(id, taskData) {
     throw new Error('Method not implemented');
   }

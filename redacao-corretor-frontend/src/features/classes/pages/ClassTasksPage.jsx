@@ -4,7 +4,9 @@ import { useClassDetails } from '../hooks/useClassDetails';
 import { useTasks } from '@/features/tasks/hooks/useTasks';
 import { TaskList } from '@/features/tasks/components/TaskList';
 import { AddStudentModal } from '../components/AddStudentModal';
+import { CreateTaskModal } from '@/features/tasks/components/CreateTaskModal';
 import { classService } from '../services/classService';
+import { taskService } from '@/features/tasks/services/taskService';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { Button } from '@/shared/components/ui/Button';
 import { useToast } from '@/shared/hooks/useToast';
@@ -13,13 +15,15 @@ export const ClassTasksPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  
+
   const [isAddStudentModalOpen, setIsAddStudentModalOpen] = useState(false);
-  
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+
   const { classData, isLoading: isLoadingClass, error: classError, refetch: refetchClass } = useClassDetails(id);
-  
+
   // Busca tasks filtrando por classId
-  const { tasks, isLoading: isLoadingTasks, error: tasksError } = useTasks({ classId: id });
+  const { tasks, isLoading: isLoadingTasks, error: tasksError, refetch: refetchTasks } = useTasks({ classId: id });
 
   const handleAddStudent = async (studentId) => {
     try {
@@ -31,6 +35,22 @@ export const ClassTasksPage = () => {
       console.error(error);
       const msg = error.response?.data?.error || 'Erro ao adicionar aluno';
       toast.error(msg);
+    }
+  };
+
+  const handleCreateTask = async (taskData) => {
+    try {
+      setIsCreatingTask(true);
+      await taskService.createTask(taskData);
+      toast.success('Tarefa criada com sucesso!');
+      setIsCreateTaskModalOpen(false);
+      refetchTasks(); // Atualiza lista de tarefas
+    } catch (error) {
+      console.error(error);
+      const msg = error.response?.data?.error || 'Erro ao criar tarefa';
+      toast.error(msg);
+    } finally {
+      setIsCreatingTask(false);
     }
   };
 
@@ -87,11 +107,13 @@ export const ClassTasksPage = () => {
           </div>
         </div>
         <div className="flex flex-col gap-2">
-            <Button onClick={() => console.log('Nova Tarefa')}>
-                Nova Tarefa
+            <Button onClick={() => setIsCreateTaskModalOpen(true)}>
+              <i className="bi bi-plus-circle"></i>
+              Nova Tarefa
             </Button>
             <Button variant="outline" onClick={() => setIsAddStudentModalOpen(true)}>
-                Adicionar Aluno
+              <i className="bi bi-person-plus"></i>
+              Adicionar Aluno
             </Button>
         </div>
       </div>
@@ -113,10 +135,18 @@ export const ClassTasksPage = () => {
         />
       </div>
 
-      <AddStudentModal 
-        isOpen={isAddStudentModalOpen} 
+      <AddStudentModal
+        isOpen={isAddStudentModalOpen}
         onClose={() => setIsAddStudentModalOpen(false)}
         onAddStudent={handleAddStudent}
+      />
+
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        onCreate={handleCreateTask}
+        isLoading={isCreatingTask}
+        classId={id}
       />
     </div>
   );

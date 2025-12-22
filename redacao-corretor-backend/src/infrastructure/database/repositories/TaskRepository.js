@@ -1,6 +1,6 @@
 import { ITaskRepository } from '../../../domain/repositories/ITaskRepository.js';
 import { Task } from '../../../domain/entities/Task.js';
-import { query } from '../config/database.js';
+import { query, transaction } from '../config/database.js';
 import { NotFoundError, DatabaseError } from '../../../utils/errors.js';
 
 export class TaskRepository extends ITaskRepository {
@@ -10,59 +10,52 @@ export class TaskRepository extends ITaskRepository {
    * @returns {Promise<Task>} Tarefa criada
    */
   async create(taskData) {
-    const client = await query.connect();
-
     try {
-      await client.query('BEGIN');
-
-      // 1. Criar a tarefa
-      const taskSql = `
-        INSERT INTO tasks (title, description, teacher_id, deadline)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, title, description, teacher_id, deadline, created_at, updated_at
-      `;
-
-      const taskValues = [
-        taskData.title,
-        taskData.description,
-        taskData.teacherId,
-        taskData.deadline || null,
-      ];
-
-      const taskResult = await client.query(taskSql, taskValues);
-
-      if (taskResult.rows.length === 0) {
-        throw new DatabaseError('Falha ao criar tarefa');
-      }
-
-      const task = taskResult.rows[0];
-
-      // 2. Associar turmas à tarefa
-      if (taskData.classIds && taskData.classIds.length > 0) {
-        const classValues = taskData.classIds
-          .map((classId, index) => `($1, $${index + 2})`)
-          .join(', ');
-
-        const classSql = `
-          INSERT INTO task_classes (task_id, class_id)
-          VALUES ${classValues}
+      return await transaction(async (client) => {
+        // 1. Criar a tarefa
+        const taskSql = `
+          INSERT INTO tasks (title, description, teacher_id, deadline)
+          VALUES ($1, $2, $3, $4)
+          RETURNING id, title, description, teacher_id, deadline, created_at, updated_at
         `;
 
-        await client.query(classSql, [task.id, ...taskData.classIds]);
-      }
+        const taskValues = [
+          taskData.title,
+          taskData.description,
+          taskData.teacherId,
+          taskData.deadline || null,
+        ];
 
-      await client.query('COMMIT');
+        const taskResult = await client.query(taskSql, taskValues);
 
-      return this._mapToEntity({ ...task, classIds: taskData.classIds });
+        if (taskResult.rows.length === 0) {
+          throw new DatabaseError('Falha ao criar tarefa');
+        }
+
+        const task = taskResult.rows[0];
+
+        // 2. Associar turmas à tarefa
+        if (taskData.classIds && taskData.classIds.length > 0) {
+          const classValues = taskData.classIds
+            .map((classId, index) => `($1, $${index + 2})`)
+            .join(', ');
+
+          const classSql = `
+            INSERT INTO task_classes (task_id, class_id)
+            VALUES ${classValues}
+          `;
+
+          await client.query(classSql, [task.id, ...taskData.classIds]);
+        }
+
+        return this._mapToEntity({ ...task, classIds: taskData.classIds });
+      });
     } catch (error) {
-      await client.query('ROLLBACK');
       if (error.code === '23503') {
         // Foreign key violation
         throw new DatabaseError('Professor ou turma não encontrados');
       }
       throw error;
-    } finally {
-      client.release();
     }
   }
 
@@ -162,6 +155,28 @@ export class TaskRepository extends ITaskRepository {
 
     const result = await query(sql, [classId]);
     return result.rows.map((row) => this._mapToEntity(row));
+  }
+
+  /**
+   * Conta tarefas por ID do professor
+   * @param {string} teacherId - ID do professor
+   * @returns {Promise<number>} Quantidade de tarefas
+   */
+  async countByTeacherId(teacherId) {
+    const sql = 'SELECT COUNT(*) FROM tasks WHERE teacher_id = $1';
+    const result = await query(sql, [teacherId]);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
+   * Conta tarefas por ID da turma
+   * @param {string} classId - ID da turma
+   * @returns {Promise<number>} Quantidade de tarefas
+   */
+  async countByClassId(classId) {
+    const sql = 'SELECT COUNT(*) FROM task_classes WHERE class_id = $1';
+    const result = await query(sql, [classId]);
+    return parseInt(result.rows[0].count, 10);
   }
 
   /**

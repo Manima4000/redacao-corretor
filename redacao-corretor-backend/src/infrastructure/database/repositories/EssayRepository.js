@@ -200,6 +200,38 @@ export class EssayRepository extends IEssayRepository {
   }
 
   /**
+   * Conta redações por status para um professor
+   *
+   * @async
+   * @param {string} teacherId - ID do professor
+   * @param {string} status - Status da redação
+   * @returns {Promise<number>} Quantidade de redações
+   */
+  async countByTeacherIdAndStatus(teacherId, status) {
+    const sql = `
+      SELECT COUNT(e.*)
+      FROM essays e
+      INNER JOIN tasks t ON e.task_id = t.id
+      WHERE t.teacher_id = $1 AND e.status = $2
+    `;
+    const result = await query(sql, [teacherId, status]);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
+   * Conta redações de um aluno
+   *
+   * @async
+   * @param {string} studentId - ID do aluno
+   * @returns {Promise<number>} Quantidade de redações
+   */
+  async countByStudentId(studentId) {
+    const sql = 'SELECT COUNT(*) FROM essays WHERE student_id = $1';
+    const result = await query(sql, [studentId]);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
    * Atualiza status da redação
    *
    * @async

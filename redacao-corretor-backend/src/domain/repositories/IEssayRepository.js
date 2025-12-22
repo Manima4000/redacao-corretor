@@ -66,6 +66,14 @@ export class IEssayRepository {
     throw new Error('Method findByStudent() must be implemented');
   }
 
+  async countByTeacherIdAndStatus(teacherId, status) {
+    throw new Error('Method countByTeacherIdAndStatus() must be implemented');
+  }
+
+  async countByStudentId(studentId) {
+    throw new Error('Method countByStudentId() must be implemented');
+  }
+
   /**
    * Atualiza status da redação
    *

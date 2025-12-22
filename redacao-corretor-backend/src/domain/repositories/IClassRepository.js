@@ -16,6 +16,10 @@ export class IClassRepository {
     throw new Error('Method not implemented');
   }
 
+  async countByTeacherId(teacherId) {
+    throw new Error('Method not implemented');
+  }
+
   async update(id, classData) {
     throw new Error('Method not implemented');
   }

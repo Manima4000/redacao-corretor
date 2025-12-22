@@ -98,6 +98,17 @@ export class ClassRepository extends IClassRepository {
   }
 
   /**
+   * Conta turmas por ID do professor
+   * @param {string} teacherId - ID do professor
+   * @returns {Promise<number>} Quantidade de turmas
+   */
+  async countByTeacherId(teacherId) {
+    const sql = 'SELECT COUNT(*) FROM classes WHERE teacher_id = $1';
+    const result = await query(sql, [teacherId]);
+    return parseInt(result.rows[0].count, 10);
+  }
+
+  /**
    * Atualiza turma
    * @param {string} id - ID da turma
    * @param {Object} classData - Dados para atualizar
