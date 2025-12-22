@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { essayService } from '../services/essayService';
 import { EssayAnnotator } from '@/features/annotations/components/EssayAnnotator';
-import { EssayCorrectionSummary } from '../components/EssayCorrectionSummary';
+import { FloatingCorrectionPanel } from '../components/FloatingCorrectionPanel';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { useToast } from '@/shared/hooks/useToast';
 
@@ -91,115 +91,44 @@ export const EssayViewPage = () => {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header com informações */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Header COMPACTO */}
+      <div className="bg-white border-b border-gray-200 shadow-sm px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm"
           >
             ← Voltar
           </button>
 
-          <div className="border-l border-gray-300 pl-4">
-            <h1 className="text-xl font-bold text-gray-800">{essay.task?.title || 'Sua Redação'}</h1>
-            <p className="text-sm text-gray-600">{essay.task?.description || ''}</p>
+          <div className="border-l border-gray-300 pl-3">
+            <h1 className="text-base font-bold text-gray-800">{essay.task?.title || 'Sua Redação'}</h1>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 text-xs">
           <div className="text-right">
-            <p className="text-sm text-gray-500">Status</p>
             <p className="font-medium">
-              {essay.status === 'pending' && (
-                <span className="text-orange-600 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-orange-600" />
-                  Aguardando correção
-                </span>
-              )}
-              {essay.status === 'correcting' && (
-                <span className="text-blue-600 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-blue-600" />
-                  Em correção
-                </span>
-              )}
-              {essay.status === 'corrected' && (
-                <span className="text-green-600 flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-green-600" />
-                  Corrigido
-                </span>
-              )}
+              {essay.status === 'pending' && <span className="text-orange-600">⏳ Aguardando</span>}
+              {essay.status === 'correcting' && <span className="text-blue-600">✏️ Em correção</span>}
+              {essay.status === 'corrected' && <span className="text-green-600">✅ Corrigido</span>}
             </p>
           </div>
-
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Enviado em</p>
-            <p className="font-medium">
-              {new Date(essay.submittedAt).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          </div>
-
-          {essay.correctedAt && (
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Corrigido em</p>
-              <p className="font-medium">
-                {new Date(essay.correctedAt).toLocaleDateString('pt-BR', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </p>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Banner de status */}
-      {essay.status === 'pending' && (
-        <div className="bg-orange-50 border-b border-orange-200 px-6 py-3">
-          <p className="text-orange-800 text-center">
-            ⏳ Sua redação está aguardando correção. Você será notificado quando for corrigida.
-          </p>
-        </div>
-      )}
-
-      {essay.status === 'correcting' && (
-        <div className="bg-blue-50 border-b border-blue-200 px-6 py-3">
-          <p className="text-blue-800 text-center">
-            ✏️ A professora está corrigindo sua redação. Você será notificado quando a correção for finalizada.
-          </p>
-        </div>
-      )}
-
-      {essay.status === 'corrected' && (
-        <div className="bg-green-50 border-b border-green-200 px-6 py-3">
-          <p className="text-green-800 text-center">
-            ✅ Sua redação foi corrigida! Veja abaixo as anotações e comentários da professora.
-          </p>
-        </div>
-      )}
-
-      {/* Nota e Comentários da Correção */}
-      {essay.status === 'corrected' && (
-        <EssayCorrectionSummary grade={essay.grade} writtenFeedback={essay.writtenFeedback} />
-      )}
-
-      {/* Canvas de visualização (read-only) */}
-      <div className="flex-1 min-h-0 relative">
+      {/* Canvas de visualização (read-only) - TELA CHEIA */}
+      <div className="flex-1 relative overflow-hidden">
         <EssayAnnotator
           essayId={essayId}
           imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
           readOnly={true}
-          className="h-full"
         />
+
+        {/* Painel Flutuante com Nota e Comentários (apenas se corrigido) */}
+        {essay.status === 'corrected' && (
+          <FloatingCorrectionPanel grade={essay.grade} writtenFeedback={essay.writtenFeedback} position="left" />
+        )}
       </div>
     </div>
   );

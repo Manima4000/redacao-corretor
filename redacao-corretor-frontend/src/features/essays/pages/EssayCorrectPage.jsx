@@ -115,58 +115,46 @@ export const EssayCorrectPage = () => {
 
   return (
     <div className="h-screen flex flex-col">
-      {/* Header com informações */}
-      <div className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Header COMPACTO */}
+      <div className="bg-white border-b border-gray-200 shadow-sm px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors text-sm"
           >
             ← Voltar
           </button>
 
-          <div className="border-l border-gray-300 pl-4">
-            <h1 className="text-xl font-bold text-gray-800">{essay.task?.title || 'Redação'}</h1>
-            <p className="text-sm text-gray-600">
+          <div className="border-l border-gray-300 pl-3">
+            <h1 className="text-base font-bold text-gray-800">{essay.task?.title || 'Redação'}</h1>
+            <p className="text-xs text-gray-600">
               Aluno: <span className="font-medium">{essay.student?.fullName || 'Aluno'}</span>
               {essay.student?.enrollmentNumber && (
-                <span className="ml-2 text-gray-500">({essay.student.enrollmentNumber})</span>
+                <span className="ml-1 text-gray-500">({essay.student.enrollmentNumber})</span>
               )}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3 text-xs">
           <div className="text-right">
-            <p className="text-sm text-gray-500">Status</p>
             <p className="font-medium">
               {essay.status === 'pending' && <span className="text-orange-600">Pendente</span>}
               {essay.status === 'correcting' && <span className="text-blue-600">Corrigindo</span>}
               {essay.status === 'corrected' && <span className="text-green-600">Corrigido</span>}
             </p>
           </div>
-
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Enviado em</p>
-            <p className="font-medium">
-              {new Date(essay.submittedAt).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-          </div>
         </div>
       </div>
 
-      {/* Canvas de anotação */}
-      <EssayAnnotator
-        essayId={essayId}
-        imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
-        onFinish={handleFinish}
-      />
+      {/* Canvas de anotação - TELA CHEIA */}
+      <div className="flex-1 relative overflow-hidden">
+        <EssayAnnotator
+          essayId={essayId}
+          imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
+          onFinish={handleFinish}
+        />
+      </div>
 
       {/* Modal de Finalização */}
       <FinalizeEssayModal

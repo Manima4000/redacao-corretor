@@ -54,21 +54,19 @@ Sistema web para professora corrigir redações de alunos de diferentes turmas, 
   - ❌ `AuthUseCase` - NÃO! Faz muitas coisas
 - **Repositories:** Apenas acesso a dados, sem lógica de negócio
 - **Controllers:** Apenas recebem requisições e chamam use cases
-- **Services:** Cada serviço tem uma responsabilidade específica (AuthService, FileStorageService, NotificationService)
+- **Services:** Cada serviço tem uma responsabilidade específica (AuthService, FileStorageService)
 
 **Exemplo:**
 ```javascript
 // ✅ BOM - Responsabilidade única
 export class CreateTaskUseCase {
-  constructor(taskRepository, notificationService) {
+  constructor(taskRepository) {
     this.taskRepository = taskRepository;
-    this.notificationService = notificationService;
   }
 
   async execute(taskDTO) {
-    // Apenas cria task e notifica alunos
+    // Apenas cria task
     const task = await this.taskRepository.create(taskDTO);
-    await this.notificationService.notifyStudentsOfNewTask(task);
     return task;
   }
 }
@@ -77,7 +75,7 @@ export class CreateTaskUseCase {
 export class TaskManager {
   async createTask() { /* ... */ }
   async uploadEssay() { /* ... */ }  // Deveria ser outro use case!
-  async sendNotification() { /* ... */ }  // Deveria ser no NotificationService!
+  async deleteTask() { /* ... */ }  // Deveria ser outro use case!
 }
 ```
 
@@ -252,8 +250,7 @@ src/
 │   │   └── ...
 │   └── services/              # INTERFACES de serviços
 │       ├── IAuthService.js
-│       ├── IFileStorageService.js
-│       └── INotificationService.js
+│       └── IFileStorageService.js
 │
 ├── application/               # Camada de Aplicação (Casos de Uso)
 │   ├── use-cases/
@@ -283,16 +280,14 @@ src/
     │   │   ├── 003_create_students.js
     │   │   ├── 004_create_tasks.js
     │   │   ├── 005_create_essays.js
-    │   │   ├── 006_create_annotations.js
-    │   │   └── 007_create_comments_and_notifications.js
+    │   │   └── 006_create_annotations.js
     │   └── repositories/      # Implementações dos repositórios
     │       ├── StudentRepository.js
     │       ├── TeacherRepository.js
     │       └── ...
     ├── services/              # Implementações dos serviços
     │   ├── AuthService.js     # JWT + bcrypt
-    │   ├── FileStorageService.js
-    │   └── NotificationService.js
+    │   └── FileStorageService.js
     └── http/
         ├── middleware/
         │   ├── authMiddleware.js
@@ -430,9 +425,12 @@ CREATE TABLE essays (
   task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
   student_id UUID REFERENCES students(id) ON DELETE CASCADE,
   file_url VARCHAR(500) NOT NULL,          -- URL do arquivo (S3 ou local)
+  file_type VARCHAR(50) NOT NULL,          -- Tipo do arquivo (image/jpeg, image/png, application/pdf)
   status VARCHAR(20) DEFAULT 'pending',    -- pending, correcting, corrected
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   corrected_at TIMESTAMP,
+  grade DECIMAL(4,2) CHECK (grade >= 0 AND grade <= 10),  -- Nota da redação (0-10)
+  written_feedback TEXT,                   -- Comentários escritos da professora
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -446,27 +444,6 @@ CREATE TABLE annotations (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
--- 7. COMMENTS (chat professora-aluno)
-CREATE TABLE comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  essay_id UUID REFERENCES essays(id) ON DELETE CASCADE,
-  author_id UUID NOT NULL,                 -- ID do student OU teacher
-  author_type VARCHAR(10) NOT NULL,        -- 'student' ou 'teacher'
-  content TEXT NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 8. NOTIFICATIONS
-CREATE TABLE notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL,                   -- ID do student OU teacher
-  user_type VARCHAR(10) NOT NULL,          -- 'student' ou 'teacher'
-  type VARCHAR(50) NOT NULL,               -- 'new_task', 'essay_submitted', etc
-  message TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 ```
 
 ### Relacionamentos
@@ -479,8 +456,6 @@ teachers (1) ──────< (N) classes
                            └──< (N) tasks
                                     │
                                     └──< (N) essays ──< (N) annotations
-                                                │
-                                                └──< (N) comments
 ```
 
 **⚠️ MUDANÇA IMPORTANTE:**
@@ -1188,8 +1163,6 @@ Use estas tags para organizar endpoints:
 - `Tasks` - Gerenciamento de tarefas/temas
 - `Essays` - Upload e gerenciamento de redações
 - `Annotations` - Anotações nas redações
-- `Comments` - Chat entre professora e aluno
-- `Notifications` - Notificações do sistema
 
 ### Schemas Reutilizáveis
 
@@ -1425,23 +1398,30 @@ npm start
 - [x] Repository e Use Cases de essays
 - [x] Status tracking (pending/correcting/corrected)
 - [x] Documentação Swagger para Essays
+- [x] Sistema de finalização de correção com nota e comentários escritos
+  - [x] Migration 007: Campos `grade` e `written_feedback` na tabela `essays`
+  - [x] FinalizeEssayCorrectionUseCase
+  - [x] Endpoint `PUT /api/essays/:essayId/finalize` (apenas professores)
+  - [x] Validação de nota (0-10) obrigatória
+  - [x] Comentários escritos opcionais
 
 ### 🎨 Fase 4: Anotações (Core Feature)
-- [ ] Integrar Fabric.js no frontend
-- [ ] Componente AnnotatorCanvas com toolbar
-- [ ] Suporte a stylus pressure
-- [ ] Serialização → JSONB
-- [ ] Auto-save a cada 5s
+- [x] Integrar Konva.js no frontend
+- [x] Componente EssayAnnotator com toolbar
+- [x] Suporte a stylus pressure
+- [x] Diferentes ferramentas (caneta, marca-texto, marcador)
+- [x] Serialização → JSONB
+- [x] Auto-save a cada 5s
 
-### 🔔 Fase 5: Notificações e Chat
-- [ ] Configurar Socket.io
-- [ ] NotificationService
-- [ ] Sistema de comentários
-
-### 📊 Fase 6: Dashboard e Relatórios
+### 📊 Fase 5: Dashboard e Relatórios
 - [ ] Dashboard professor
 - [ ] Dashboard aluno
 - [ ] Gráficos com Recharts
+
+### 📧 Fase 6: Notificações por Email (Futuro)
+- [ ] Sistema de envio de emails
+- [ ] Notificar alunos sobre novas tarefas
+- [ ] Notificar professora sobre redações enviadas
 
 ---
 
@@ -1458,4 +1438,4 @@ npm start
 
 ---
 
-**Última atualização:** 2025-12-16
+**Última atualização:** 2025-12-18

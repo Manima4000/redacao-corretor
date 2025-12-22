@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { ROUTES } from '@/shared/constants/routes';
 import { PrivateRoute } from './PrivateRoute';
@@ -17,6 +17,15 @@ import { EssayViewPage } from '@/features/essays/pages/EssayViewPage';
 
 // Layout
 import { MainLayout } from '@/shared/components/layout/MainLayout';
+
+/**
+ * Wrapper para adicionar location.key às rotas que precisam remontar
+ */
+const RouteWithLocation = ({ children }) => {
+  const location = useLocation();
+  // Força remontagem quando a rota muda usando location.pathname como key
+  return <div key={location.pathname}>{children}</div>;
+};
 
 /**
  * Configuração de rotas da aplicação
@@ -61,7 +70,9 @@ export const AppRouter = () => {
           element={
             <PrivateRoute>
               <MainLayout>
-                <TaskDetailPage />
+                <RouteWithLocation>
+                  <TaskDetailPage />
+                </RouteWithLocation>
               </MainLayout>
             </PrivateRoute>
           }
@@ -110,7 +121,9 @@ export const AppRouter = () => {
             <PrivateRoute>
               <RequireTeacher>
                 <MainLayout>
-                  <ClassTasksPage />
+                  <RouteWithLocation>
+                    <ClassTasksPage />
+                  </RouteWithLocation>
                 </MainLayout>
               </RequireTeacher>
             </PrivateRoute>
@@ -123,7 +136,9 @@ export const AppRouter = () => {
             <PrivateRoute>
               <RequireTeacher>
                 <MainLayout>
-                  <TaskStudentsPage />
+                  <RouteWithLocation>
+                    <TaskStudentsPage />
+                  </RouteWithLocation>
                 </MainLayout>
               </RequireTeacher>
             </PrivateRoute>

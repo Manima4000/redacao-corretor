@@ -3,12 +3,12 @@ import { EssayGradeCard } from './EssayGradeCard';
 import { EssayFeedbackCard } from './EssayFeedbackCard';
 
 /**
- * Componente que agrupa nota e comentários da correção
+ * Componente que agrupa nota e comentários da correção (REFATORADO)
  *
  * Responsabilidade Única (SRP):
  * - Compõe visualização de nota + feedback
- * - Layout responsivo
- * - Inclui dica para o aluno
+ * - Layout compacto para painel lateral
+ * - Pode ser minimizado/expandido
  *
  * Princípios aplicados:
  * - SRP: Apenas composição visual de correção
@@ -21,6 +21,7 @@ import { EssayFeedbackCard } from './EssayFeedbackCard';
  */
 export const EssayCorrectionSummary = ({ grade, writtenFeedback }) => {
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
 
   // Se não há nota nem feedback, não renderiza nada
   const hasGrade = grade !== null && grade !== undefined;
@@ -29,32 +30,55 @@ export const EssayCorrectionSummary = ({ grade, writtenFeedback }) => {
   if (!hasGrade && !hasFeedback) return null;
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Container Principal */}
-        <div className="flex flex-col items-center gap-6">
-          {/* Nota (Centralizada) */}
-          <EssayGradeCard grade={grade} />
+    <div className="bg-white rounded-lg shadow-xl border border-gray-200">
+      {/* Header do Card (sempre visível) */}
+      <div className="bg-linear-to-r from-indigo-600 to-purple-600 text-white px-4 py-2 rounded-t-lg flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <i className="bi bi-star-fill text-yellow-300"></i>
+          <span className="font-bold text-sm">Correção</span>
+        </div>
+        <button
+          onClick={() => setIsMinimized(!isMinimized)}
+          className="hover:bg-white/20 p-1 rounded transition-colors"
+          title={isMinimized ? 'Expandir' : 'Minimizar'}
+        >
+          <i className={`bi ${isMinimized ? 'bi-chevron-down' : 'bi-chevron-up'}`}></i>
+        </button>
+      </div>
 
-          {/* Botão para ver comentários (se houver) */}
-          {hasFeedback && (
-            <button
-              onClick={() => setShowFeedback(!showFeedback)}
-              className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition-colors bg-indigo-50 px-4 py-2 rounded-full hover:bg-indigo-100"
-            >
-              <i className={`bi ${showFeedback ? 'bi-chevron-up' : 'bi-chat-left-text'}`}></i>
-              {showFeedback ? 'Ocultar comentários' : 'Ver comentários da professora'}
-            </button>
+      {/* Conteúdo (colapsável) */}
+      {!isMinimized && (
+        <div className="p-4 max-h-[calc(100vh-200px)] overflow-y-auto">
+          {/* Nota */}
+          {hasGrade && (
+            <div className="mb-4">
+              <EssayGradeCard grade={grade} />
+            </div>
           )}
 
-          {/* Comentários (Collapsible) */}
-          {hasFeedback && showFeedback && (
-            <div className="w-full animate-fade-in">
-              <EssayFeedbackCard feedback={writtenFeedback} />
+          {/* Comentários */}
+          {hasFeedback && (
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowFeedback(!showFeedback)}
+                className="w-full flex items-center justify-between gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition-colors bg-indigo-50 px-3 py-2 rounded hover:bg-indigo-100"
+              >
+                <div className="flex items-center gap-2">
+                  <i className="bi bi-chat-left-text"></i>
+                  <span className="text-sm">Comentários</span>
+                </div>
+                <i className={`bi ${showFeedback ? 'bi-chevron-up' : 'bi-chevron-down'}`}></i>
+              </button>
+
+              {showFeedback && (
+                <div className="animate-fade-in">
+                  <EssayFeedbackCard feedback={writtenFeedback} />
+                </div>
+              )}
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
