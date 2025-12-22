@@ -53,11 +53,13 @@ export const EssayViewPage = () => {
    * Voltar para detalhes da tarefa
    */
   const handleBack = () => {
-    if (essay?.taskId) {
-      navigate(`/tasks/${essay.taskId}`);
-    } else {
-      navigate('/home');
-    }
+    setTimeout(() => {
+      if (essay?.taskId) {
+        navigate(`/tasks/${essay.taskId}`);
+      } else {
+        navigate('/home');
+      }
+    }, 0);
   };
 
   if (isLoading) {

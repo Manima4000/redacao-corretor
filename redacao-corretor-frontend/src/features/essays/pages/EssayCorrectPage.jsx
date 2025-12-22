@@ -77,11 +77,15 @@ export const EssayCorrectPage = () => {
    * Voltar para lista de alunos
    */
   const handleBack = () => {
-    if (essay?.task?.id && essay?.task?.classId) {
-      navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
-    } else {
-      navigate('/dashboard');
-    }
+    // Usando setTimeout para garantir que a navegação ocorra no próximo ciclo
+    // Isso resolve problemas onde a URL muda mas a página não atualiza
+    setTimeout(() => {
+      if (essay?.task?.id && essay?.task?.classId) {
+        navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
+      } else {
+        navigate('/dashboard');
+      }
+    }, 0);
   };
 
   if (isLoading) {
