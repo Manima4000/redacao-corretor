@@ -21,11 +21,13 @@ import { MainLayout } from '@/shared/components/layout/MainLayout';
 
 /**
  * Wrapper para adicionar location.key às rotas que precisam remontar
+ * Usa location.pathname + location.key para garantir remontagem completa
  */
 const RouteWithLocation = ({ children }) => {
   const location = useLocation();
-  // Força remontagem quando a rota muda usando location.pathname como key
-  return <div key={location.pathname}>{children}</div>;
+  // Força remontagem quando a rota muda usando pathname + key único
+  // location.key muda a cada navegação, garantindo remontagem
+  return <div key={`${location.pathname}-${location.key}`}>{children}</div>;
 };
 
 /**
@@ -84,7 +86,9 @@ export const AppRouter = () => {
           path="/essays/:essayId/view"
           element={
             <PrivateRoute>
-              <EssayViewPage />
+              <RouteWithLocation>
+                <EssayViewPage />
+              </RouteWithLocation>
             </PrivateRoute>
           }
         />
@@ -152,7 +156,9 @@ export const AppRouter = () => {
           element={
             <PrivateRoute>
               <RequireTeacher>
-                <EssayCorrectPage />
+                <RouteWithLocation>
+                  <EssayCorrectPage />
+                </RouteWithLocation>
               </RequireTeacher>
             </PrivateRoute>
           }

@@ -51,15 +51,10 @@ export const EssayViewPage = () => {
 
   /**
    * Voltar para detalhes da tarefa
+   * Usa navigate(-1) para voltar no histórico do navegador
    */
   const handleBack = () => {
-    setTimeout(() => {
-      if (essay?.taskId) {
-        navigate(`/tasks/${essay.taskId}`);
-      } else {
-        navigate('/home');
-      }
-    }, 0);
+    navigate(-1);
   };
 
   if (isLoading) {
@@ -122,6 +117,7 @@ export const EssayViewPage = () => {
       {/* Canvas de visualização (read-only) - TELA CHEIA */}
       <div className="flex-1 relative overflow-hidden">
         <EssayAnnotator
+          key={essayId} // Força remontagem quando essayId muda
           essayId={essayId}
           imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
           readOnly={true}

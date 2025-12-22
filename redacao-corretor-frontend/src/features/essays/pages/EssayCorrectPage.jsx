@@ -57,14 +57,10 @@ export const EssayCorrectPage = () => {
       toast.success('Correção finalizada com sucesso!');
       setIsModalOpen(false);
 
-      // Redireciona para página de alunos da tarefa após 1.5s
+      // Aguarda um pouco para o toast ser visível antes de redirecionar
       setTimeout(() => {
-        if (essay?.task?.id && essay?.task?.classId) {
-          navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
-        } else {
-          navigate('/dashboard');
-        }
-      }, 1500);
+        navigate(-1); // Volta para a página anterior (lista de alunos)
+      }, 800);
     } catch (err) {
       console.error('Erro ao finalizar correção:', err);
       toast.error(err.response?.data?.error || 'Erro ao finalizar correção');
@@ -75,17 +71,10 @@ export const EssayCorrectPage = () => {
 
   /**
    * Voltar para lista de alunos
+   * Usa navigate(-1) para voltar no histórico do navegador
    */
   const handleBack = () => {
-    // Usando setTimeout para garantir que a navegação ocorra no próximo ciclo
-    // Isso resolve problemas onde a URL muda mas a página não atualiza
-    setTimeout(() => {
-      if (essay?.task?.id && essay?.task?.classId) {
-        navigate(`/classes/${essay.task.classId}/tasks/${essay.task.id}`);
-      } else {
-        navigate('/dashboard');
-      }
-    }, 0);
+    navigate(-1);
   };
 
   if (isLoading) {
@@ -154,6 +143,7 @@ export const EssayCorrectPage = () => {
       {/* Canvas de anotação - TELA CHEIA */}
       <div className="flex-1 relative overflow-hidden">
         <EssayAnnotator
+          key={essayId} // Força remontagem quando essayId muda
           essayId={essayId}
           imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
           onFinish={handleFinish}
