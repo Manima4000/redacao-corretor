@@ -53,9 +53,9 @@ export const ToolbarAnnotation = ({ onClear, onFinish }) => {
   ];
 
   const sizes = [
-    { value: 2, label: 'Fino' },
-    { value: 4, label: 'Médio' },
-    { value: 6, label: 'Grosso' },
+    { value: 2, label: 'Fino', size: 'w-2 h-2' },
+    { value: 4, label: 'Médio', size: 'w-4 h-4' },
+    { value: 6, label: 'Grosso', size: 'w-6 h-6' },
   ];
 
   const formatLastSaved = () => {
@@ -73,15 +73,7 @@ export const ToolbarAnnotation = ({ onClear, onFinish }) => {
   return (
     <div className="bg-white border-b border-gray-200 shadow-sm">
       {/* Status Bar */}
-      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between text-sm">
-        <div className="flex items-center gap-4">
-          {/* Lines Count */}
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500">Linhas:</span>
-            <span className="font-medium text-gray-700">{lines.length}</span>
-          </div>
-        </div>
-
+      <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center justify-end text-sm">
         {/* Save Status */}
         <div className="flex items-center gap-2">
           {isSaving && (
@@ -108,41 +100,41 @@ export const ToolbarAnnotation = ({ onClear, onFinish }) => {
       </div>
 
       {/* Toolbar */}
-      <div className="px-4 py-3 flex items-center gap-6 flex-wrap">
+      <div className="px-4 py-3 flex items-center gap-4 flex-wrap">
         {/* Tools */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Ferramenta:</span>
           <div className="flex gap-2">
             {tools.map((tool) => (
               <button
                 key={tool.value}
                 onClick={() => setCurrentTool(tool.value)}
-                className={`px-3 py-2 rounded flex items-center gap-2 text-sm font-medium transition-colors ${
+                className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg transition-all ${
                   currentTool === tool.value && !isEraser
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:shadow-sm'
                 }`}
                 title={tool.label}
               >
                 <i className={`bi ${tool.icon}`}></i>
-                {tool.label}
               </button>
             ))}
           </div>
         </div>
 
+        {/* Separator */}
+        <div className="w-px h-8 bg-gray-300" />
+
         {/* Colors */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Cor:</span>
           <div className="flex gap-2">
             {colors.map((c) => (
               <button
                 key={c.value}
                 onClick={() => setColor(c.value)}
-                className={`w-8 h-8 rounded-full border-2 transition-all ${c.bg} ${
+                className={`w-9 h-9 rounded-full border-2 transition-all ${c.bg} ${
                   color === c.value && !isEraser
-                    ? 'border-gray-900 ring-2 ring-gray-300'
-                    : 'border-gray-300 hover:border-gray-400'
+                    ? 'border-gray-900 ring-2 ring-gray-300 shadow-md'
+                    : 'border-gray-300 hover:border-gray-400 hover:shadow-sm'
                 }`}
                 title={c.label}
               />
@@ -150,21 +142,29 @@ export const ToolbarAnnotation = ({ onClear, onFinish }) => {
           </div>
         </div>
 
+        {/* Separator */}
+        <div className="w-px h-8 bg-gray-300" />
+
         {/* Sizes */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-700">Tamanho:</span>
-          <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3">
             {sizes.map((s) => (
               <button
                 key={s.value}
                 onClick={() => setSize(s.value)}
-                className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                className={`flex items-center justify-center transition-all ${
                   size === s.value && !isEraser
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    ? 'ring-2 ring-blue-600 ring-offset-2'
+                    : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
                 }`}
+                title={s.label}
+                style={{ width: '36px', height: '36px' }}
               >
-                {s.label}
+                <div
+                  className={`rounded-full bg-gray-700 transition-all ${
+                    size === s.value && !isEraser ? 'bg-blue-600' : ''
+                  } ${s.size}`}
+                />
               </button>
             ))}
           </div>
