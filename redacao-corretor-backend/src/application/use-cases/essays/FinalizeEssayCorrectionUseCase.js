@@ -8,7 +8,8 @@ import { NotFoundError, ForbiddenError, ValidationError } from '../../../utils/e
  * 2. Validar permissões (apenas professor da turma)
  * 3. Validar nota (0-10)
  * 4. Finalizar correção (atualizar nota, feedback e status)
- * 5. Retornar redação atualizada
+ * 5. Enviar email de notificação para o aluno
+ * 6. Retornar redação atualizada
  *
  * Segue SOLID:
  * - SRP: Apenas finaliza correção de redação
@@ -18,10 +19,12 @@ export class FinalizeEssayCorrectionUseCase {
   /**
    * @param {IEssayRepository} essayRepository - Repositório de redações
    * @param {ITaskRepository} taskRepository - Repositório de tarefas
+   * @param {SendCorrectionCompletedUseCase} sendCorrectionCompletedUseCase - Use case de envio de email (opcional)
    */
-  constructor(essayRepository, taskRepository) {
+  constructor(essayRepository, taskRepository, sendCorrectionCompletedUseCase = null) {
     this.essayRepository = essayRepository;
     this.taskRepository = taskRepository;
+    this.sendCorrectionCompletedUseCase = sendCorrectionCompletedUseCase;
   }
 
   /**
@@ -82,7 +85,18 @@ export class FinalizeEssayCorrectionUseCase {
       writtenFeedback || null
     );
 
-    // 7. Retornar redação atualizada
+    // 7. Enviar email de notificação (não bloqueia se falhar)
+    if (this.sendCorrectionCompletedUseCase) {
+      // Executa em background para não bloquear a resposta
+      this.sendCorrectionCompletedUseCase
+        .execute({ essayId: updatedEssay.id })
+        .catch((error) => {
+          console.error('⚠️  Erro ao enviar email de correção finalizada:', error.message);
+          // Não lançar erro - email é uma funcionalidade secundária
+        });
+    }
+
+    // 8. Retornar redação atualizada
     return {
       id: updatedEssay.id,
       taskId: updatedEssay.taskId,

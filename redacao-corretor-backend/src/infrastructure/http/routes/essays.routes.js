@@ -6,10 +6,12 @@ import { GetEssayByIdUseCase } from '../../../application/use-cases/essays/GetEs
 import { GetEssayImageUseCase } from '../../../application/use-cases/essays/GetEssayImageUseCase.js';
 import { DeleteEssayUseCase } from '../../../application/use-cases/essays/DeleteEssayUseCase.js';
 import { FinalizeEssayCorrectionUseCase } from '../../../application/use-cases/essays/FinalizeEssayCorrectionUseCase.js';
+import { SendCorrectionCompletedUseCase } from '../../../application/use-cases/emails/SendCorrectionCompletedUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
 import { StudentRepository } from '../../database/repositories/StudentRepository.js';
 import { GoogleDriveStorageService } from '../../services/GoogleDriveStorageService.js';
+import { EmailService } from '../../services/EmailService.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { requireTeacher } from '../middleware/roleMiddleware.js';
 import {
@@ -25,6 +27,7 @@ const essayRepository = new EssayRepository();
 const taskRepository = new TaskRepository();
 const studentRepository = new StudentRepository();
 const fileStorageService = new GoogleDriveStorageService();
+const emailService = new EmailService();
 
 // Use Cases
 const uploadEssayUseCase = new UploadEssayUseCase(
@@ -60,9 +63,19 @@ const deleteEssayUseCase = new DeleteEssayUseCase(
   fileStorageService
 );
 
+// Email Use Case
+const sendCorrectionCompletedUseCase = new SendCorrectionCompletedUseCase(
+  essayRepository,
+  studentRepository,
+  taskRepository,
+  emailService
+);
+
+// Finalize Correction Use Case com email
 const finalizeEssayCorrectionUseCase = new FinalizeEssayCorrectionUseCase(
   essayRepository,
-  taskRepository
+  taskRepository,
+  sendCorrectionCompletedUseCase
 );
 
 // Controller

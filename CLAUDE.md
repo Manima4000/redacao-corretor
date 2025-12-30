@@ -1373,6 +1373,318 @@ npm start
 
 ---
 
+## Sistema de Notificações por Email
+
+### Visão Geral
+
+O sistema implementa notificações automáticas por email para:
+1. **Lembretes de prazo próximo** - Alunos que não enviaram redação quando o prazo está acabando
+2. **Correção finalizada** - Notifica aluno quando professora finaliza correção
+
+### Arquitetura
+
+**Seguindo SOLID e Clean Architecture:**
+
+```
+Scheduler (node-cron) → Use Case → Repository + Email Service → SMTP → Aluno
+```
+
+**Componentes:**
+
+```
+src/
+├── domain/
+│   └── services/
+│       └── IEmailService.js              # Interface (abstração)
+├── application/
+│   └── use-cases/
+│       └── emails/
+│           ├── SendDeadlineReminderUseCase.js
+│           └── SendCorrectionCompletedUseCase.js
+└── infrastructure/
+    ├── services/
+    │   ├── EmailService.js               # Implementação (Nodemailer)
+    │   └── email/
+    │       └── templates/
+    │           ├── deadlineReminder.js   # Template HTML
+    │           └── correctionCompleted.js # Template HTML
+    └── schedulers/
+        └── emailScheduler.js             # Cron jobs
+```
+
+### Interface IEmailService
+
+```javascript
+export class IEmailService {
+  async sendDeadlineReminder({ to, studentName, taskTitle, className, deadline }) {}
+  async sendCorrectionCompleted({ to, studentName, taskTitle, className, grade, writtenFeedback, essayUrl }) {}
+  async verifyConnection() {}
+}
+```
+
+### Implementação com Nodemailer
+
+```javascript
+export class EmailService extends IEmailService {
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_SECURE === 'true',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+  }
+
+  async sendDeadlineReminder({ to, studentName, taskTitle, className, deadline }) {
+    const template = deadlineReminderTemplate({ studentName, taskTitle, className, deadline });
+    return this._sendEmail({ to, subject: template.subject, html: template.html, text: template.text });
+  }
+
+  // ...
+}
+```
+
+### Use Cases
+
+#### 1. SendDeadlineReminderUseCase
+
+**Responsabilidade:** Busca tarefas com prazo próximo e envia lembretes para alunos que não enviaram redação.
+
+```javascript
+export class SendDeadlineReminderUseCase {
+  constructor(taskRepository, studentRepository, essayRepository, emailService) {
+    // DIP: Depende de abstrações
+  }
+
+  async execute({ hoursBeforeDeadline = 24 }) {
+    // 1. Buscar tarefas com prazo nas próximas X horas
+    const upcomingTasks = await this.taskRepository.findUpcomingDeadlines({
+      startDate: now,
+      endDate: deadlineWindow,
+    });
+
+    // 2. Para cada tarefa, verificar alunos que não enviaram
+    // 3. Enviar email de lembrete
+  }
+}
+```
+
+#### 2. SendCorrectionCompletedUseCase
+
+**Responsabilidade:** Envia email quando professora finaliza correção de uma redação.
+
+```javascript
+export class SendCorrectionCompletedUseCase {
+  constructor(essayRepository, studentRepository, taskRepository, emailService) {
+    // DIP: Depende de abstrações
+  }
+
+  async execute({ essayId }) {
+    // 1. Buscar redação, aluno, tarefa e turma
+    // 2. Montar dados do email
+    // 3. Enviar email com nota e feedback
+  }
+}
+```
+
+### Scheduler Automático (node-cron)
+
+**Arquivo:** `src/infrastructure/schedulers/emailScheduler.js`
+
+```javascript
+export class EmailScheduler {
+  async start() {
+    // Verificação diária às 9h
+    cron.schedule('0 9 * * *', async () => {
+      await this._sendDeadlineReminders();
+    });
+
+    console.log('✅ Scheduler configurado: verificação diária às 9h');
+  }
+
+  async _sendDeadlineReminders() {
+    const stats = await this.sendDeadlineReminderUseCase.execute({
+      hoursBeforeDeadline: 24,
+    });
+  }
+}
+```
+
+**Inicialização no server.js:**
+
+```javascript
+import { emailScheduler } from './infrastructure/schedulers/emailScheduler.js';
+
+async function startServer() {
+  // ...
+  await emailScheduler.start();
+  // ...
+}
+```
+
+### Templates de Email
+
+**Características:**
+- ✅ HTML responsivo e bonito
+- ✅ Versão texto alternativa (fallback)
+- ✅ Emojis para melhor UX
+- ✅ Links para frontend
+- ✅ Informações completas (turma, tarefa, prazo, nota, feedback)
+
+**Exemplo de Template (Deadline Reminder):**
+
+```javascript
+export const deadlineReminderTemplate = ({ studentName, taskTitle, className, deadline }) => {
+  return {
+    subject: `⏰ Lembrete: Prazo próximo para "${taskTitle}"`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <!-- HTML bem formatado com CSS inline -->
+        <div class="alert-box">
+          <p>⚠️ Atenção: O prazo está próximo!</p>
+        </div>
+        <!-- ... -->
+      </html>
+    `,
+    text: `Olá, ${studentName}! O prazo para "${taskTitle}" está próximo...`,
+  };
+};
+```
+
+### Integração com FinalizeEssayCorrectionUseCase
+
+**Quando a professora finaliza uma correção, o email é enviado automaticamente:**
+
+```javascript
+export class FinalizeEssayCorrectionUseCase {
+  constructor(essayRepository, taskRepository, sendCorrectionCompletedUseCase) {
+    // Injeção do use case de email
+  }
+
+  async execute({ essayId, grade, writtenFeedback, userId, userType }) {
+    // 1. Validar e finalizar correção
+    const updatedEssay = await this.essayRepository.finalize(essayId, grade, writtenFeedback);
+
+    // 2. Enviar email (não bloqueia se falhar)
+    if (this.sendCorrectionCompletedUseCase) {
+      this.sendCorrectionCompletedUseCase
+        .execute({ essayId: updatedEssay.id })
+        .catch((error) => {
+          console.error('⚠️  Erro ao enviar email:', error.message);
+          // Não lançar erro - email é funcionalidade secundária
+        });
+    }
+
+    return updatedEssay;
+  }
+}
+```
+
+### Configuração (Variáveis de Ambiente)
+
+```env
+# Email Service (SMTP)
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=seu-email@gmail.com
+EMAIL_PASSWORD=sua-senha-de-app
+EMAIL_FROM_NAME=Sistema de Redações
+```
+
+**Para Gmail:**
+1. Ative "Verificação em duas etapas" na conta Google
+2. Gere "Senha de app" em https://myaccount.google.com/apppasswords
+3. Use a senha de app no `EMAIL_PASSWORD`
+
+**Outros provedores SMTP:**
+- SendGrid: `smtp.sendgrid.net` (porta 587)
+- Mailgun: `smtp.mailgun.org` (porta 587)
+- Outlook: `smtp-mail.outlook.com` (porta 587)
+
+### Novos Métodos em TaskRepository
+
+```javascript
+/**
+ * Busca tarefas com prazos próximos
+ */
+async findUpcomingDeadlines({ startDate, endDate }) {
+  // SQL com WHERE deadline BETWEEN startDate AND endDate
+}
+
+/**
+ * Busca turma de uma tarefa
+ */
+async getClassByTaskId(taskId) {
+  // JOIN com task_classes e classes
+}
+```
+
+### Segurança e Boas Práticas
+
+✅ **Emails não bloqueiam operações principais** - Executam em background
+✅ **Validação de conexão SMTP** - Verifica configuração na inicialização
+✅ **Logs detalhados** - Rastreamento de emails enviados/falhados
+✅ **Templates seguros** - Sem injeção de HTML (dados escapados)
+✅ **Graceful degradation** - Sistema funciona mesmo se email falhar
+
+### Testando o Sistema
+
+**Execução manual do scheduler:**
+
+```javascript
+import { emailScheduler } from './infrastructure/schedulers/emailScheduler.js';
+
+// Executar manualmente (útil para testes)
+await emailScheduler.executeManually();
+```
+
+**Logs esperados:**
+
+```
+📅 Iniciando scheduler de emails...
+✅ Serviço de email conectado e pronto
+✅ Scheduler configurado: verificação diária às 9h
+
+🔔 Executando verificação de prazos próximos...
+   Encontradas 3 tarefas com prazo próximo
+   Tarefa "Redação ENEM 2024": 5 alunos sem envio
+   ✅ Email enviado com sucesso: Lembrete de prazo para joao@exemplo.com
+   📊 Estatísticas:
+      - Tarefas verificadas: 3
+      - Emails enviados: 5
+      - Emails com erro: 0
+```
+
+### Fluxo Completo
+
+**1. Lembrete de Prazo:**
+```
+Cron (diário 9h) → SendDeadlineReminderUseCase
+  → TaskRepository.findUpcomingDeadlines()
+  → StudentRepository.findByClassId()
+  → EssayRepository.findByTaskId()
+  → Filtrar alunos sem envio
+  → EmailService.sendDeadlineReminder()
+  → SMTP → Email do aluno
+```
+
+**2. Correção Finalizada:**
+```
+Professora → PUT /api/essays/:id/finalize
+  → FinalizeEssayCorrectionUseCase
+  → EssayRepository.finalize()
+  → SendCorrectionCompletedUseCase (background)
+  → EmailService.sendCorrectionCompleted()
+  → SMTP → Email do aluno
+```
+
+---
+
 ## Próximas Fases de Desenvolvimento
 
 ### ✅ Fase 1: Fundação (COMPLETO)
@@ -1413,15 +1725,22 @@ npm start
 - [x] Serialização → JSONB
 - [x] Auto-save a cada 5s
 
-### 📊 Fase 5: Dashboard e Relatórios
-- [ ] Dashboard professor
-- [ ] Dashboard aluno
-- [ ] Gráficos com Recharts
+### 📧 Fase 5: Notificações por Email (COMPLETO)
+- [x] Interface IEmailService e implementação com Nodemailer
+- [x] Templates HTML responsivos (deadline reminder, correction completed)
+- [x] SendDeadlineReminderUseCase - Lembretes automáticos de prazo
+- [x] SendCorrectionCompletedUseCase - Notificação de correção finalizada
+- [x] Scheduler automático com node-cron (verificação diária às 9h)
+- [x] Integração com FinalizeEssayCorrectionUseCase
+- [x] Novos métodos em TaskRepository (findUpcomingDeadlines, getClassByTaskId)
+- [x] Configuração SMTP (Gmail, SendGrid, Mailgun, etc.)
+- [x] Logs detalhados e graceful degradation
 
-### 📧 Fase 6: Notificações por Email (Futuro)
-- [ ] Sistema de envio de emails
-- [ ] Notificar alunos sobre novas tarefas
-- [ ] Notificar professora sobre redações enviadas
+### 📊 Fase 6: Dashboard e Relatórios (Futuro)
+- [ ] Dashboard professor (estatísticas de turmas e tarefas)
+- [ ] Dashboard aluno (progresso e notas)
+- [ ] Gráficos com Recharts (evolução de notas, taxa de entrega)
+- [ ] Relatórios exportáveis (PDF, Excel)
 
 ---
 
@@ -1438,4 +1757,4 @@ npm start
 
 ---
 
-**Última atualização:** 2025-12-18
+**Última atualização:** 2025-12-30

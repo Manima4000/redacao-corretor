@@ -47,7 +47,11 @@ const config = {
 
   // CORS
   frontend: {
-    url: process.env.FRONTEND_URL || 'http://localhost:5173',
+    // Permite múltiplas origens separadas por vírgula
+    // Exemplo: http://localhost:5173,https://seu-dominio.com,http://192.168.1.100:5173
+    urls: process.env.FRONTEND_URL
+      ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+      : ['http://localhost:5173'],
   },
 
   // Rate Limiting

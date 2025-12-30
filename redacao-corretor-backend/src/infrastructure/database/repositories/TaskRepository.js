@@ -278,6 +278,65 @@ export class TaskRepository extends ITaskRepository {
   }
 
   /**
+   * Busca tarefas com prazos próximos
+   * @param {Object} params
+   * @param {Date} params.startDate - Data inicial
+   * @param {Date} params.endDate - Data final
+   * @returns {Promise<Task[]>} Tarefas com prazo no intervalo
+   */
+  async findUpcomingDeadlines({ startDate, endDate }) {
+    const sql = `
+      SELECT
+        t.id, t.title, t.description, t.teacher_id, t.deadline, t.created_at, t.updated_at,
+        COALESCE(
+          json_agg(tc.class_id) FILTER (WHERE tc.class_id IS NOT NULL),
+          '[]'
+        ) as class_ids
+      FROM tasks t
+      LEFT JOIN task_classes tc ON t.id = tc.task_id
+      WHERE t.deadline IS NOT NULL
+        AND t.deadline >= $1
+        AND t.deadline <= $2
+      GROUP BY t.id
+      ORDER BY t.deadline ASC
+    `;
+
+    const result = await query(sql, [startDate, endDate]);
+    return result.rows.map((row) => this._mapToEntity(row));
+  }
+
+  /**
+   * Busca turmas associadas a uma tarefa
+   * @param {string} taskId - ID da tarefa
+   * @returns {Promise<Object|null>} Primeira turma encontrada ou null
+   */
+  async getClassByTaskId(taskId) {
+    const sql = `
+      SELECT c.id, c.name, c.description, c.teacher_id, c.created_at, c.updated_at
+      FROM classes c
+      INNER JOIN task_classes tc ON c.id = tc.class_id
+      WHERE tc.task_id = $1
+      LIMIT 1
+    `;
+
+    const result = await query(sql, [taskId]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      teacherId: row.teacher_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  /**
    * Busca alunos de uma tarefa com status de entrega
    * @param {string} taskId - ID da tarefa
    * @returns {Promise<Array>} Lista de alunos com status de entrega

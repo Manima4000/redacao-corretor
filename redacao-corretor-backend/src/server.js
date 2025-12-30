@@ -9,6 +9,7 @@ import { swaggerSpec } from './config/swagger.js';
 import routes from './infrastructure/http/routes/index.js';
 import { errorHandler, notFoundHandler } from './infrastructure/http/middleware/errorHandler.js';
 import { testConnection } from './infrastructure/database/config/database.js';
+import { emailScheduler } from './infrastructure/schedulers/emailScheduler.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -20,9 +21,20 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS
+// CORS - Suporta múltiplas origens
 app.use(cors({
-  origin: config.frontend.url,
+  origin: (origin, callback) => {
+    // Permitir requisições sem origin (ex: Postman, curl)
+    if (!origin) return callback(null, true);
+
+    // Verificar se a origin está na lista permitida
+    if (config.frontend.urls.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS bloqueou origem: ${origin}`);
+      callback(new Error('Não permitido pelo CORS'));
+    }
+  },
   credentials: true,
 }));
 
@@ -97,8 +109,13 @@ async function startServer() {
       process.exit(1);
     }
 
+    // Iniciar scheduler de emails
+    logger.info('Inicializando scheduler de emails...');
+    await emailScheduler.start();
+
     // Iniciar servidor
-    app.listen(PORT, () => {
+    // 0.0.0.0 permite conexões de qualquer IP (rede local ou internet)
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 Servidor rodando na porta ${PORT}`);
       logger.info(`📝 Ambiente: ${config.nodeEnv}`);
       logger.info(`📖 Documentação: http://localhost:${PORT}/api-docs`);
