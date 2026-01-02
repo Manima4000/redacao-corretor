@@ -1,14 +1,28 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/Button';
 
 /**
  * Modal para finalizar correção de redação
  * Permite professora inserir nota (0-10) e comentários escritos
+ *
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Se modal está aberto
+ * @param {Function} props.onClose - Callback ao fechar
+ * @param {Function} props.onFinalize - Callback ao finalizar (grade, writtenFeedback)
+ * @param {boolean} props.isLoading - Se está finalizando
+ * @param {string} props.initialComments - Comentários já salvos (do CommentsPanel)
  */
-export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading }) => {
+export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading, initialComments = '' }) => {
   const [grade, setGrade] = useState('');
   const [writtenFeedback, setWrittenFeedback] = useState('');
   const [error, setError] = useState('');
+
+  // Pré-popular comentários quando modal abre
+  useEffect(() => {
+    if (isOpen && initialComments) {
+      setWrittenFeedback(initialComments);
+    }
+  }, [isOpen, initialComments]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -85,6 +99,12 @@ export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading }) =
             <label htmlFor="feedback" className="block text-sm font-medium text-gray-700 mb-1">
               Comentários Escritos <span className="text-gray-400 text-xs">(opcional)</span>
             </label>
+            {initialComments && (
+              <div className="mb-2 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center gap-1.5">
+                <i className="bi bi-check-circle-fill"></i>
+                <span>Comentários já salvos durante a correção. Você pode revisar ou editar abaixo.</span>
+              </div>
+            )}
             <textarea
               id="feedback"
               value={writtenFeedback}
@@ -95,7 +115,9 @@ export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading }) =
               placeholder="Escreva seus comentários sobre a redação (ex: pontos positivos, áreas de melhoria, etc.)"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Adicione comentários adicionais que complementem as anotações visuais
+              {initialComments
+                ? 'Revise ou edite os comentários antes de finalizar'
+                : 'Adicione comentários adicionais que complementem as anotações visuais'}
             </p>
           </div>
 

@@ -63,6 +63,19 @@ export const essayService = {
   },
 
   /**
+   * Atualiza comentários da redação (rascunho antes de finalizar)
+   * @param {string} essayId - ID da redação
+   * @param {string} writtenFeedback - Comentários escritos
+   * @returns {Promise<Object>} Redação atualizada
+   */
+  async updateComments(essayId, writtenFeedback) {
+    const response = await api.patch(`/essays/${essayId}/comments`, {
+      writtenFeedback,
+    });
+    return response.data.data;
+  },
+
+  /**
    * Finaliza correção de redação com nota e comentários
    * @param {string} essayId - ID da redação
    * @param {number} grade - Nota (0-10)

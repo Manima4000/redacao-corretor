@@ -4,6 +4,7 @@ import { useEssay } from '../hooks/useEssay';
 import { essayService } from '../services/essayService';
 import { EssayAnnotator } from '@/features/annotations/components/EssayAnnotator';
 import { FinalizeEssayModal } from '../components/FinalizeEssayModal';
+import { CommentsPanel } from '../components/CommentsPanel';
 import { Spinner } from '@/shared/components/ui/Spinner';
 import { useToast } from '@/shared/hooks/useToast';
 
@@ -36,6 +37,14 @@ export const EssayCorrectPage = () => {
   // Estado local (apenas UI)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const [savedComments, setSavedComments] = useState('');
+
+  /**
+   * Callback quando comentários são salvos no painel
+   */
+  const handleCommentsSaved = (comments) => {
+    setSavedComments(comments);
+  };
 
   /**
    * Callback ao clicar em "Finalizar Correção" - abre modal
@@ -140,14 +149,26 @@ export const EssayCorrectPage = () => {
         </div>
       </div>
 
-      {/* Canvas de anotação - TELA CHEIA */}
-      <div className="flex-1 relative overflow-hidden">
-        <EssayAnnotator
-          key={essayId} // Força remontagem quando essayId muda
-          essayId={essayId}
-          imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
-          onFinish={handleFinish}
-        />
+      {/* Canvas de anotação + Painel de comentários */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Canvas de anotação - OCUPA 65% */}
+        <div className="flex-1 relative overflow-hidden">
+          <EssayAnnotator
+            key={essayId} // Força remontagem quando essayId muda
+            essayId={essayId}
+            imageUrl={`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/essays/${essayId}/image`}
+            onFinish={handleFinish}
+          />
+        </div>
+
+        {/* Painel de comentários - OCUPA 35% (lado direito) */}
+        <div className="w-100 shrink-0">
+          <CommentsPanel
+            essayId={essayId}
+            initialComments={essay?.writtenFeedback || ''}
+            onCommentsSaved={handleCommentsSaved}
+          />
+        </div>
       </div>
 
       {/* Modal de Finalização */}
@@ -156,6 +177,7 @@ export const EssayCorrectPage = () => {
         onClose={() => setIsModalOpen(false)}
         onFinalize={handleFinalizeSubmit}
         isLoading={isFinalizing}
+        initialComments={savedComments || essay?.writtenFeedback || ''}
       />
     </div>
   );
