@@ -265,6 +265,38 @@ export class EssayRepository extends IEssayRepository {
   }
 
   /**
+   * Atualiza comentários da redação (rascunho antes de finalizar)
+   * SRP: Apenas atualiza comentários, não altera status ou nota
+   *
+   * @async
+   * @param {string} essayId - ID da redação
+   * @param {string} writtenFeedback - Comentários escritos
+   * @returns {Promise<Object>} Redação atualizada
+   */
+  async updateComments(essayId, writtenFeedback) {
+    const sql = `
+      UPDATE essays
+      SET written_feedback = $1
+      WHERE id = $2
+      RETURNING
+        id,
+        task_id as "taskId",
+        student_id as "studentId",
+        file_url as "fileUrl",
+        file_type as "fileType",
+        status,
+        submitted_at as "submittedAt",
+        corrected_at as "correctedAt",
+        grade,
+        written_feedback as "writtenFeedback"
+    `;
+
+    const result = await query(sql, [writtenFeedback, essayId]);
+
+    return result.rows[0];
+  }
+
+  /**
    * Finaliza correção da redação (atualiza nota, feedback e status)
    *
    * @async

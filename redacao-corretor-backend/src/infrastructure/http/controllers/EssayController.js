@@ -19,14 +19,16 @@ export class EssayController {
    * @param {GetEssayImageUseCase} getEssayImageUseCase - Use case busca imagem da redação
    * @param {DeleteEssayUseCase} deleteEssayUseCase - Use case de delete
    * @param {FinalizeEssayCorrectionUseCase} finalizeEssayCorrectionUseCase - Use case finalizar correção
+   * @param {UpdateEssayCommentsUseCase} updateEssayCommentsUseCase - Use case atualizar comentários
    */
-  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, getEssayByIdUseCase, getEssayImageUseCase, deleteEssayUseCase, finalizeEssayCorrectionUseCase) {
+  constructor(uploadEssayUseCase, getStudentEssayByTaskUseCase, getEssayByIdUseCase, getEssayImageUseCase, deleteEssayUseCase, finalizeEssayCorrectionUseCase, updateEssayCommentsUseCase) {
     this.uploadEssayUseCase = uploadEssayUseCase;
     this.getStudentEssayByTaskUseCase = getStudentEssayByTaskUseCase;
     this.getEssayByIdUseCase = getEssayByIdUseCase;
     this.getEssayImageUseCase = getEssayImageUseCase;
     this.deleteEssayUseCase = deleteEssayUseCase;
     this.finalizeEssayCorrectionUseCase = finalizeEssayCorrectionUseCase;
+    this.updateEssayCommentsUseCase = updateEssayCommentsUseCase;
 
     // Bind methods
     this.upload = this.upload.bind(this);
@@ -35,6 +37,7 @@ export class EssayController {
     this.getEssayImage = this.getEssayImage.bind(this);
     this.delete = this.delete.bind(this);
     this.finalize = this.finalize.bind(this);
+    this.updateComments = this.updateComments.bind(this);
   }
 
   /**
@@ -319,6 +322,39 @@ export class EssayController {
       res.status(200).json({
         success: true,
         message: 'Correção finalizada com sucesso',
+        data: essay,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Atualizar comentários da redação (rascunho antes de finalizar)
+   * PATCH /api/essays/:essayId/comments
+   *
+   * @async
+   * @param {Request} req - Request do Express
+   * @param {Response} res - Response do Express
+   * @param {NextFunction} next - Next middleware
+   */
+  async updateComments(req, res, next) {
+    try {
+      const { essayId } = req.params;
+      const { writtenFeedback } = req.body;
+      const userId = req.user.id;
+      const userType = req.user.userType;
+
+      const essay = await this.updateEssayCommentsUseCase.execute({
+        essayId,
+        writtenFeedback: writtenFeedback || null,
+        userId,
+        userType,
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Comentários atualizados com sucesso',
         data: essay,
       });
     } catch (error) {

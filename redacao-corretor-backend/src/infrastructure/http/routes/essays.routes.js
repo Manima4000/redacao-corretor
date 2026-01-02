@@ -6,6 +6,7 @@ import { GetEssayByIdUseCase } from '../../../application/use-cases/essays/GetEs
 import { GetEssayImageUseCase } from '../../../application/use-cases/essays/GetEssayImageUseCase.js';
 import { DeleteEssayUseCase } from '../../../application/use-cases/essays/DeleteEssayUseCase.js';
 import { FinalizeEssayCorrectionUseCase } from '../../../application/use-cases/essays/FinalizeEssayCorrectionUseCase.js';
+import { UpdateEssayCommentsUseCase } from '../../../application/use-cases/essays/UpdateEssayCommentsUseCase.js';
 import { SendCorrectionCompletedUseCase } from '../../../application/use-cases/emails/SendCorrectionCompletedUseCase.js';
 import { EssayRepository } from '../../database/repositories/EssayRepository.js';
 import { TaskRepository } from '../../database/repositories/TaskRepository.js';
@@ -78,6 +79,12 @@ const finalizeEssayCorrectionUseCase = new FinalizeEssayCorrectionUseCase(
   sendCorrectionCompletedUseCase
 );
 
+// Update Comments Use Case
+const updateEssayCommentsUseCase = new UpdateEssayCommentsUseCase(
+  essayRepository,
+  taskRepository
+);
+
 // Controller
 const essayController = new EssayController(
   uploadEssayUseCase,
@@ -85,7 +92,8 @@ const essayController = new EssayController(
   getEssayByIdUseCase,
   getEssayImageUseCase,
   deleteEssayUseCase,
-  finalizeEssayCorrectionUseCase
+  finalizeEssayCorrectionUseCase,
+  updateEssayCommentsUseCase
 );
 
 /**
@@ -501,6 +509,95 @@ router.put(
   authMiddleware,
   requireTeacher,
   (req, res, next) => essayController.finalize(req, res, next)
+);
+
+/**
+ * @swagger
+ * /api/essays/{essayId}/comments:
+ *   patch:
+ *     summary: Atualizar comentários da redação (rascunho)
+ *     description: Permite que professores atualizem comentários da redação enquanto fazem anotações, antes de finalizar a correção
+ *     tags: [Essays]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: essayId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID da redação
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               writtenFeedback:
+ *                 type: string
+ *                 description: Comentários escritos da professora (salvos como rascunho)
+ *                 example: Boa introdução, mas precisa desenvolver melhor o argumento no segundo parágrafo.
+ *     responses:
+ *       200:
+ *         description: Comentários atualizados com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Comentários atualizados com sucesso
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     taskId:
+ *                       type: string
+ *                       format: uuid
+ *                     studentId:
+ *                       type: string
+ *                       format: uuid
+ *                     fileUrl:
+ *                       type: string
+ *                     fileType:
+ *                       type: string
+ *                     status:
+ *                       type: string
+ *                       enum: [pending, correcting, corrected]
+ *                       example: pending
+ *                     submittedAt:
+ *                       type: string
+ *                       format: date-time
+ *                     correctedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       nullable: true
+ *                     grade:
+ *                       type: number
+ *                       format: float
+ *                       nullable: true
+ *                       example: null
+ *                     writtenFeedback:
+ *                       type: string
+ *                       example: Boa introdução, mas precisa desenvolver melhor o argumento no segundo parágrafo.
+ *       403:
+ *         description: Apenas professores podem atualizar comentários
+ *       404:
+ *         description: Redação não encontrada
+ */
+router.patch(
+  '/:essayId/comments',
+  authMiddleware,
+  requireTeacher,
+  (req, res, next) => essayController.updateComments(req, res, next)
 );
 
 export default router;

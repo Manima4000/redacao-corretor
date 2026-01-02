@@ -1716,6 +1716,13 @@ Professora → PUT /api/essays/:id/finalize
   - [x] Endpoint `PUT /api/essays/:essayId/finalize` (apenas professores)
   - [x] Validação de nota (0-10) obrigatória
   - [x] Comentários escritos opcionais
+- [x] Sistema de atualização de comentários em tempo real (rascunho antes de finalizar)
+  - [x] UpdateEssayCommentsUseCase - Permite atualizar comentários sem finalizar correção
+  - [x] EssayRepository.updateComments() - Método para atualizar apenas written_feedback
+  - [x] Endpoint `PATCH /api/essays/:essayId/comments` (apenas professores)
+  - [x] Permite que professor escreva comentários enquanto faz anotações visuais
+  - [x] Comentários salvos como rascunho (não altera status nem nota)
+  - [x] Ao finalizar, comentários já estão preenchidos e podem ser editados
 
 ### 🎨 Fase 4: Anotações (Core Feature)
 - [x] Integrar Konva.js no frontend
