@@ -30,9 +30,9 @@ const AnnotationContext = createContext(null);
  *   <Canvas />
  * </AnnotationProvider>
  */
-export const AnnotationProvider = ({ essayId, readOnly = false, children }) => {
+export const AnnotationProvider = ({ essayId, pageNumber = 1, readOnly = false, children }) => {
   // Estado de anotações (via hook useAnnotations)
-  const annotations = useAnnotations(essayId, 1, readOnly);
+  const annotations = useAnnotations(essayId, pageNumber, readOnly);
 
   // Estado de ferramentas (cor, tamanho, tool)
   const [color, setColor] = useState('#EF4444'); // Vermelho padrão

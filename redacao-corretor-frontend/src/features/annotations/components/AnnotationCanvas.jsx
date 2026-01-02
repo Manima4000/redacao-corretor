@@ -1,32 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Stage, Layer, Image as KonvaImage, Line } from 'react-konva';
+import { Document, Page, pdfjs } from 'react-pdf';
 import getStroke from 'perfect-freehand';
 import { useStylus } from '../hooks/useStylus';
 import { useCanvasZoom } from '../hooks/useCanvasZoom';
 import { useAnnotationContext } from './AnnotationProvider';
 import { getStrokeOptions } from '../utils/freehandHelper';
 import { Spinner } from '@/shared/components/ui/Spinner';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configuração do Worker via CDN para evitar problemas de MIME type com Vite/ESM
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 /**
- * Canvas de Anotações com Konva (REFATORADO)
- *
- * Responsabilidades:
- * - Carregar imagem da redação
- * - Gerenciar desenho com stylus/caneta
- * - Renderizar linhas com perfect-freehand
- * - Zoom e pan
- *
- * Segue SOLID:
- * - SRP: Canvas completo (imagem + anotações)
- * - Usa Context para estado
- *
- * NOTA: Imagem e anotações DEVEM estar no mesmo Stage para coordenadas corretas
+ * Canvas de Anotações com Konva e Suporte a PDF
  *
  * @param {Object} props
- * @param {string} props.imageUrl - URL da imagem
+ * @param {string} props.imageUrl - URL do arquivo (imagem ou PDF)
+ * @param {number} props.pageNumber - Número da página (para PDF)
  * @param {Function} props.onZoomChange - Callback quando zoom muda
  */
-export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
+export const AnnotationCanvas = ({ imageUrl, pageNumber = 1, onZoomChange }) => {
   // Context de anotações
   const {
     lines,
@@ -39,9 +34,11 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
   } = useAnnotationContext();
 
   // Estado local
-  const [image, setImage] = useState(null);
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const [imageError, setImageError] = useState(null);
+  const [fileType, setFileType] = useState(null); // 'image' | 'pdf'
+  const [fileUrl, setFileUrl] = useState(null); // Blob URL
+  const [image, setImage] = useState(null); // Objeto Image para Konva
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [currentLine, setCurrentLine] = useState(null);
 
@@ -70,14 +67,19 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
   } = useCanvasZoom({ minZoom: 0.5, maxZoom: 4, zoomStep: 0.2 });
 
   /**
-   * Carrega imagem da redação via fetch
+   * Carrega arquivo (Imagem ou PDF) via fetch
    */
   useEffect(() => {
     if (!imageUrl) return;
 
-    const loadImage = async () => {
+    // Reset states
+    setIsLoaded(false);
+    setLoadError(null);
+    setFileType(null);
+    setImage(null);
+
+    const loadFile = async () => {
       try {
-        // Faz requisição com credenciais (cookies)
         const response = await fetch(imageUrl, {
           credentials: 'include',
         });
@@ -86,41 +88,42 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Converte resposta em blob
+        const contentType = response.headers.get('content-type');
         const blob = await response.blob();
         const blobUrl = URL.createObjectURL(blob);
+        setFileUrl(blobUrl);
 
-        // Cria elemento de imagem
-        const img = new window.Image();
+        if (contentType?.includes('application/pdf')) {
+          setFileType('pdf');
+          // Carregamento do PDF é assíncrono via componente Document,
+          // setIsLoaded será chamado no onLoadSuccess da Page
+        } else {
+          setFileType('image');
+          // Processar imagem
+          const img = new window.Image();
+          img.onload = () => {
+            setImage(img);
+            setCanvasSize({ width: img.width, height: img.height });
+            setIsLoaded(true);
+          };
+          img.onerror = () => {
+            setLoadError('Erro ao processar imagem');
+            setIsLoaded(false);
+          };
+          img.src = blobUrl;
+        }
 
-        img.onload = () => {
-          setImage(img);
-          setImageLoaded(true);
-          // Usa dimensões naturais da imagem
-          setCanvasSize({ width: img.width, height: img.height });
-        };
-
-        img.onerror = (error) => {
-          console.error('Erro ao carregar imagem:', error);
-          setImageError('Erro ao carregar imagem');
-          setImageLoaded(false);
-        };
-
-        img.src = blobUrl;
       } catch (error) {
-        console.error('Erro ao fazer fetch da imagem:', error);
-        setImageError(`Erro ao carregar imagem: ${error.message}`);
-        setImageLoaded(false);
+        console.error('Erro ao carregar arquivo:', error);
+        setLoadError(`Erro ao carregar arquivo: ${error.message}`);
+        setIsLoaded(false);
       }
     };
 
-    loadImage();
+    loadFile();
 
-    // Cleanup: revoga blob URL
     return () => {
-      if (image && image.src.startsWith('blob:')) {
-        URL.revokeObjectURL(image.src);
-      }
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [imageUrl]);
@@ -133,6 +136,14 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
       onZoomChange({ scale, zoomIn, zoomOut, resetZoom });
     }
   }, [scale, zoomIn, zoomOut, resetZoom, onZoomChange]);
+
+  /**
+   * Callback quando página do PDF carrega
+   */
+  const onPdfPageLoadSuccess = ({ width, height }) => {
+    setCanvasSize({ width, height });
+    setIsLoaded(true);
+  };
 
   /**
    * Pega posição do ponteiro relativa ao stage
@@ -157,17 +168,14 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
       const stage = e.target.getStage();
       const shouldDraw = handleStylusDown(e.evt);
 
-      // Se é toque (dedo), inicia pan
       if (currentPointerType === 'touch') {
         handlePanStart(e.evt);
         return;
       }
 
-      // Se não deve desenhar, retorna
       if (!shouldDraw) return;
 
       isDrawingRef.current = true;
-
       const pos = getRelativePointerPosition(stage);
       const pressure = e.evt.pressure || 0.5;
 
@@ -178,17 +186,7 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
         tool: isEraser ? 'eraser' : currentTool,
       });
     },
-    [
-      readOnly,
-      handleStylusDown,
-      currentPointerType,
-      handlePanStart,
-      getRelativePointerPosition,
-      color,
-      size,
-      currentTool,
-      isEraser,
-    ]
+    [readOnly, handleStylusDown, currentPointerType, handlePanStart, getRelativePointerPosition, color, size, currentTool, isEraser]
   );
 
   /**
@@ -196,7 +194,6 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
    */
   const handleMouseMove = useCallback(
     (e) => {
-      // Se está arrastando (pan), continua pan
       if (isDragging) {
         handlePanMove(e.evt);
         return;
@@ -223,7 +220,6 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
     (e) => {
       handleStylusUp(e.evt);
 
-      // Se estava arrastando (pan), finaliza pan
       if (isDragging) {
         handlePanEnd(e.evt);
         return;
@@ -233,7 +229,6 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
 
       isDrawingRef.current = false;
 
-      // Adiciona linha finalizada às linhas
       if (currentLine.points.length > 1) {
         updateLines([...lines, currentLine]);
       }
@@ -254,13 +249,11 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
 
     if (stroke.length === 0) return null;
 
-    // Converter pontos do perfect-freehand para flat array
     const points = stroke.reduce((acc, [x, y]) => {
       acc.push(x, y);
       return acc;
     }, []);
 
-    // Configurações de estilo por ferramenta
     const toolStyles = {
       pen: { opacity: 1.0 },
       highlighter: { opacity: 0.3 },
@@ -288,31 +281,19 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
     );
   };
 
-  // Loading
-  if (!imageLoaded && !imageError) {
-    return (
-      <div className="flex items-center justify-center h-full bg-gray-100">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-gray-600">Carregando imagem da redação...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Erro
-  if (imageError) {
+  if (loadError) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-100">
         <div className="text-center max-w-2xl px-6">
-          <div className="text-6xl mb-4">🖼️</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Erro ao Carregar Imagem</h2>
-          <p className="text-gray-600 mb-4">{imageError}</p>
+          <div className="text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Erro ao Carregar Arquivo</h2>
+          <p className="text-gray-600 mb-4">{loadError}</p>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Recarregar Página
+            Tentar Novamente
           </button>
         </div>
       </div>
@@ -321,36 +302,92 @@ export const AnnotationCanvas = ({ imageUrl, onZoomChange }) => {
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center bg-gray-200 overflow-hidden"
+      className="w-full h-full flex items-center justify-center bg-gray-200 overflow-hidden relative"
       style={{ touchAction: 'none' }}
     >
-      <Stage
-        ref={stageRef}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        scaleX={scale}
-        scaleY={scale}
-        x={position.x}
-        y={position.y}
-        onPointerDown={handleMouseDown}
-        onPointerMove={handleMouseMove}
-        onPointerUp={handleMouseUp}
-        style={{ cursor: isDragging ? 'grabbing' : isPenActive ? 'crosshair' : 'grab' }}
+      {/* Loading Spinner */}
+      {!isLoaded && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100 bg-opacity-80">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-4 text-gray-600">
+              {fileType === 'pdf' ? 'Renderizando PDF...' : 'Carregando Imagem...'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Container Relativo para Layers */}
+      <div 
+        className="relative shadow-lg bg-white"
+        style={{ width: canvasSize.width, height: canvasSize.height }}
       >
-        {/* Camada da Imagem (Fundo) */}
-        <Layer>
-          {image && <KonvaImage image={image} width={canvasSize.width} height={canvasSize.height} />}
-        </Layer>
+        {/* Layer 1: PDF (HTML/Canvas) - Fica atrás do Konva */}
+        {fileType === 'pdf' && fileUrl && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transformOrigin: '0 0',
+              zIndex: 0,
+              pointerEvents: 'none', // Deixa eventos passarem para o Konva
+            }}
+          >
+            <Document 
+              file={fileUrl}
+              loading={null}
+              error={<div>Erro no PDF</div>}
+            >
+              <Page 
+                pageNumber={pageNumber} 
+                onLoadSuccess={onPdfPageLoadSuccess}
+                renderTextLayer={false}
+                renderAnnotationLayer={false}
+                width={canvasSize.width} // Define largura inicial base
+                scale={1} // Mantém escala 1 para usar CSS transform (performance)
+              />
+            </Document>
+          </div>
+        )}
 
-        {/* Camada das Anotações (Frente) */}
-        <Layer>
-          {/* Linhas finalizadas */}
-          {lines.map((line, i) => renderLine(line, i))}
+        {/* Layer 2: Konva Stage (Anotações + Imagem Raster) */}
+        <Stage
+          ref={stageRef}
+          width={canvasSize.width}
+          height={canvasSize.height}
+          scaleX={scale}
+          scaleY={scale}
+          x={position.x}
+          y={position.y}
+          onPointerDown={handleMouseDown}
+          onPointerMove={handleMouseMove}
+          onPointerUp={handleMouseUp}
+          style={{ 
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            zIndex: 10,
+            cursor: isDragging ? 'grabbing' : isPenActive ? 'crosshair' : 'grab',
+            // Se for PDF, o fundo do Stage é transparente para ver o PDF atrás
+            backgroundColor: 'transparent' 
+          }}
+        >
+          {/* Sub-Layer 2.1: Imagem Raster (se não for PDF) */}
+          {fileType === 'image' && image && (
+            <Layer>
+              <KonvaImage image={image} width={canvasSize.width} height={canvasSize.height} />
+            </Layer>
+          )}
 
-          {/* Linha sendo desenhada */}
-          {currentLine && renderLine(currentLine, 'current')}
-        </Layer>
-      </Stage>
+          {/* Sub-Layer 2.2: Anotações */}
+          <Layer>
+            {lines.map((line, i) => renderLine(line, i))}
+            {currentLine && renderLine(currentLine, 'current')}
+          </Layer>
+        </Stage>
+      </div>
     </div>
   );
 };

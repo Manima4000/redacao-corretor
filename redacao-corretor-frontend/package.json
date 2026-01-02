@@ -13,10 +13,12 @@
     "axios": "^1.13.2",
     "bootstrap-icons": "^1.13.1",
     "konva": "^10.0.12",
+    "pdfjs-dist": "^5.4.530",
     "perfect-freehand": "^1.2.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-konva": "^19.2.1",
+    "react-pdf": "^10.3.0",
     "react-router-dom": "^7.10.1",
     "zustand": "^5.0.9"
   },

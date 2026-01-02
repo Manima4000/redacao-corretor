@@ -38,9 +38,10 @@ export const EssayAnnotator = ({
   className = ''
 }) => {
   return (
-    <AnnotationProvider essayId={essayId} readOnly={readOnly}>
+    <AnnotationProvider essayId={essayId} pageNumber={pageNumber} readOnly={readOnly}>
       <EssayAnnotatorContent
         imageUrl={imageUrl}
+        pageNumber={pageNumber}
         onFinish={onFinish}
         readOnly={readOnly}
         className={className}
@@ -52,7 +53,7 @@ export const EssayAnnotator = ({
 /**
  * Conteúdo do EssayAnnotator (separado para usar useAnnotationContext)
  */
-const EssayAnnotatorContent = ({ imageUrl, onFinish, readOnly, className }) => {
+const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, className }) => {
   // Context de anotações
   const {
     lines,
@@ -133,6 +134,7 @@ const EssayAnnotatorContent = ({ imageUrl, onFinish, readOnly, className }) => {
         {/* Canvas com imagem + anotações */}
         <AnnotationCanvas
           imageUrl={imageUrl}
+          pageNumber={pageNumber}
           onZoomChange={handleZoomChange}
         />
 
