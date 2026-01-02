@@ -51,7 +51,7 @@ export class SendCorrectionCompletedUseCase {
       }
 
       // 5. Montar URL da redação (frontend)
-      const essayUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/essays/${essayId}`;
+      const essayUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/essays/${essayId}/view`;
 
       // 6. Enviar email
       await this.emailService.sendCorrectionCompleted({
