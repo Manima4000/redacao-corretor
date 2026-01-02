@@ -29,19 +29,27 @@ import { ConfirmationModal } from '@/shared/components/ui/ConfirmationModal';
  * @param {Function} [props.onFinish] - Callback ao finalizar correção
  * @param {string} [props.className=''] - Classes CSS adicionais
  */
+/**
+ * Componente de anotação de redação (REFATORADO)
+ *
+ * @param {Object} props
+ * @param {string} props.essayId - ID da redação
+ * @param {string} props.imageUrl - URL da imagem da redação
+ * @param {boolean} [props.readOnly=false] - Se true, apenas visualiza
+ * @param {Function} [props.onFinish] - Callback ao finalizar correção
+ * @param {string} [props.className=''] - Classes CSS adicionais
+ */
 export const EssayAnnotator = ({
   essayId,
   imageUrl,
-  pageNumber = 1,
   readOnly = false,
   onFinish,
   className = ''
 }) => {
   return (
-    <AnnotationProvider essayId={essayId} pageNumber={pageNumber} readOnly={readOnly}>
+    <AnnotationProvider essayId={essayId} readOnly={readOnly}>
       <EssayAnnotatorContent
         imageUrl={imageUrl}
-        pageNumber={pageNumber}
         onFinish={onFinish}
         readOnly={readOnly}
         className={className}
@@ -53,11 +61,8 @@ export const EssayAnnotator = ({
 /**
  * Conteúdo do EssayAnnotator (separado para usar useAnnotationContext)
  */
-const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, className }) => {
-  // Context de anotações
+const EssayAnnotatorContent = ({ imageUrl, onFinish, readOnly, className }) => {
   const {
-    lines,
-    isLoading,
     saveAnnotations,
     clearAnnotations,
     hasUnsavedChanges,
@@ -79,12 +84,9 @@ const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, class
    */
   const handleFinish = async () => {
     try {
-      // Salva anotações se houver mudanças não salvas
       if (hasUnsavedChanges) {
         await saveAnnotations();
       }
-
-      // Chama callback (abre modal de finalização)
       if (onFinish) onFinish();
     } catch (error) {
       console.error('Erro ao salvar anotações:', error);
@@ -95,7 +97,6 @@ const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, class
    * Abre modal de confirmação para limpar
    */
   const handleClear = () => {
-    if (lines.length === 0) return;
     setShowClearModal(true);
   };
 
@@ -107,21 +108,9 @@ const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, class
     setShowClearModal(false);
   };
 
-  // Loading (delegado ao ImageCanvas)
-  if (isLoading) {
-    return (
-      <div className={`flex items-center justify-center h-full bg-gray-100 ${className}`}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto"></div>
-          <p className="mt-4 text-gray-600">Carregando anotações...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className={`flex flex-col h-full bg-gray-100 ${className}`}>
-      {/* Toolbar */}
+      {/* Toolbar - Fixa no topo */}
       {!readOnly && (
         <ToolbarAnnotation
           onFinish={handleFinish}
@@ -129,23 +118,24 @@ const EssayAnnotatorContent = ({ imageUrl, pageNumber, onFinish, readOnly, class
         />
       )}
 
-      {/* Canvas Container */}
-      <div className="flex-1 relative overflow-hidden bg-gray-200">
-        {/* Canvas com imagem + anotações */}
+      {/* Canvas Container - Ocupa o resto e permite scroll interno se necessário */}
+      <div className="flex-1 relative bg-gray-300 overflow-hidden">
+        {/* Canvas com imagem + anotações - Aqui dentro temos o scroll real */}
         <AnnotationCanvas
           imageUrl={imageUrl}
-          pageNumber={pageNumber}
           onZoomChange={handleZoomChange}
         />
 
-        {/* Controles de zoom */}
+        {/* Controles de zoom - Posicionados de forma fixa em relação ao container */}
         {zoomControls && (
-          <ZoomControls
-            onZoomIn={zoomControls.zoomIn}
-            onZoomOut={zoomControls.zoomOut}
-            onResetZoom={zoomControls.resetZoom}
-            scale={zoomControls.scale}
-          />
+          <div className="absolute bottom-8 right-8 z-50">
+            <ZoomControls
+              onZoomIn={zoomControls.zoomIn}
+              onZoomOut={zoomControls.zoomOut}
+              onResetZoom={zoomControls.resetZoom}
+              scale={zoomControls.scale}
+            />
+          </div>
         )}
       </div>
 

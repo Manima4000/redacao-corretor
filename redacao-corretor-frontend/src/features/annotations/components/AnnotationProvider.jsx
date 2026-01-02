@@ -1,5 +1,4 @@
-import { createContext, useContext, useState } from 'react';
-import { useAnnotations } from '../hooks/useAnnotations';
+import { createContext, useContext, useState, useCallback, useRef } from 'react';
 
 /**
  * Context de Anotações
@@ -8,76 +7,140 @@ import { useAnnotations } from '../hooks/useAnnotations';
 const AnnotationContext = createContext(null);
 
 /**
- * Provider de Anotações
- *
+ * Provider de Anotações e Orquestrador de Páginas
+ * 
  * Responsabilidades:
- * - Centralizar estado de anotações (lines, isLoading, isSaving, etc.)
- * - Centralizar estado de ferramentas (color, size, tool, eraser)
- * - Fornecer estado para componentes filhos via Context API
+ * - Centralizar estado global de ferramentas (color, size, tool, eraser)
+ * - Orquestrar ações de múltiplas páginas (salvar todas, limpar todas, desfazer)
+ * - Fornecer estado agregado para componentes filhos via Context API
  *
  * Segue SOLID:
- * - SRP: Apenas gerencia estado global de anotações
+ * - SRP: Gerencia estado global e coordena páginas
  * - Evita prop drilling (componentes acessam via useAnnotationContext)
  *
  * @param {Object} props
  * @param {string} props.essayId - ID da redação
  * @param {boolean} [props.readOnly=false] - Se true, desabilita edição
  * @param {React.ReactNode} props.children - Componentes filhos
- *
- * @example
- * <AnnotationProvider essayId={essayId} readOnly={false}>
- *   <Toolbar />
- *   <Canvas />
- * </AnnotationProvider>
  */
-export const AnnotationProvider = ({ essayId, pageNumber = 1, readOnly = false, children }) => {
-  // Estado de anotações (via hook useAnnotations)
-  const annotations = useAnnotations(essayId, pageNumber, readOnly);
-
-  // Estado de ferramentas (cor, tamanho, tool)
-  const [color, setColor] = useState('#EF4444'); // Vermelho padrão
-  const [size, setSize] = useState(4); // Médio padrão
-  const [currentTool, setCurrentTool] = useState('pen'); // pen, highlighter, marker
+export const AnnotationProvider = ({ essayId, readOnly = false, children }) => {
+  // --- Estado de Ferramentas (Compartilhado) ---
+  const [color, setColor] = useState('#EF4444');
+  const [size, setSize] = useState(4);
+  const [currentTool, setCurrentTool] = useState('pen');
   const [isEraser, setIsEraser] = useState(false);
 
+  // --- Estado de Orquestração de Páginas ---
+  // Map<pageNumber, pageMethods>
+  const pagesRef = useRef(new Map());
+  const [globalState, setGlobalState] = useState({
+    hasUnsavedChanges: false,
+    isSaving: false,
+    totalLines: 0 // Usado para habilitar/desabilitar Undo/Clear
+  });
+
   /**
-   * Troca cor e desativa borracha
+   * Atualiza o estado global agregado verificando todas as páginas
    */
+  const updateGlobalState = useCallback(() => {
+    let hasUnsaved = false;
+    let isSaving = false;
+    let totalLines = 0;
+
+    pagesRef.current.forEach((methods) => {
+      if (methods.hasUnsavedChanges) hasUnsaved = true;
+      if (methods.isSaving) isSaving = true;
+      totalLines += methods.lineCount || 0;
+    });
+
+    setGlobalState({ hasUnsavedChanges: hasUnsaved, isSaving, totalLines });
+  }, []);
+
+  /**
+   * Registra uma página para ser gerenciada
+   */
+  const registerPage = useCallback((pageNumber, methods) => {
+    pagesRef.current.set(pageNumber, methods);
+    updateGlobalState();
+    
+    // Retorna função de cleanup
+    return () => {
+      pagesRef.current.delete(pageNumber);
+      updateGlobalState();
+    };
+  }, [updateGlobalState]);
+
+  /**
+   * Notifica que o estado de uma página mudou (ex: desenhou algo)
+   */
+  const notifyPageUpdate = useCallback((pageNumber, newState) => {
+    const methods = pagesRef.current.get(pageNumber);
+    if (methods) {
+      // Atualiza os dados armazenados
+      pagesRef.current.set(pageNumber, { ...methods, ...newState });
+      updateGlobalState();
+    }
+  }, [updateGlobalState]);
+
+  // --- Ações Globais ---
+
   const handleColorChange = (newColor) => {
     setColor(newColor);
     setIsEraser(false);
   };
 
-  /**
-   * Troca ferramenta e desativa borracha
-   */
   const handleToolChange = (newTool) => {
     setCurrentTool(newTool);
     setIsEraser(false);
   };
 
+  const toggleEraser = () => setIsEraser(!isEraser);
+
   /**
-   * Toggle borracha
+   * Salva anotações de TODAS as páginas que têm mudanças
    */
-  const toggleEraser = () => {
-    setIsEraser(!isEraser);
+  const saveAnnotations = async () => {
+    const promises = [];
+    pagesRef.current.forEach((methods) => {
+      if (methods.hasUnsavedChanges) {
+        promises.push(methods.save());
+      }
+    });
+
+    if (promises.length > 0) {
+      await Promise.all(promises);
+      updateGlobalState();
+    }
   };
 
-  // Valor do context (tudo que componentes filhos podem acessar)
-  const value = {
-    // Estado de anotações (do hook useAnnotations)
-    lines: annotations.lines,
-    isLoading: annotations.isLoading,
-    isSaving: annotations.isSaving,
-    lastSaved: annotations.lastSaved,
-    hasUnsavedChanges: annotations.hasUnsavedChanges,
-    updateLines: annotations.updateLines,
-    saveAnnotations: annotations.saveAnnotations,
-    clearAnnotations: annotations.clearAnnotations,
-    undo: annotations.undo,
-    reload: annotations.reload,
+  /**
+   * Limpa anotações de TODAS as páginas
+   */
+  const clearAnnotations = () => {
+    pagesRef.current.forEach((methods) => {
+      methods.clear();
+    });
+    updateGlobalState();
+  };
 
-    // Estado de ferramentas
+  /**
+   * Desfazer global (Simplificado: tenta desfazer na última página com linhas)
+   */
+  const undo = () => {
+    const sortedPages = Array.from(pagesRef.current.entries())
+      .sort((a, b) => b[0] - a[0]);
+
+    for (const [_, methods] of sortedPages) {
+      if (methods.lineCount > 0) {
+        methods.undo();
+        updateGlobalState();
+        return;
+      }
+    }
+  };
+
+  const value = {
+    // Ferramentas
     color,
     setColor: handleColorChange,
     size,
@@ -91,6 +154,21 @@ export const AnnotationProvider = ({ essayId, pageNumber = 1, readOnly = false, 
     // Metadados
     essayId,
     readOnly,
+
+    // Estado Global Agregado
+    lines: Array(globalState.totalLines).fill(null),
+    isLoading: false,
+    isSaving: globalState.isSaving,
+    hasUnsavedChanges: globalState.hasUnsavedChanges,
+
+    // Ações Globais
+    saveAnnotations,
+    clearAnnotations,
+    undo,
+
+    // Métodos Internos para Páginas
+    registerPage,
+    notifyPageUpdate
   };
 
   return <AnnotationContext.Provider value={value}>{children}</AnnotationContext.Provider>;
@@ -98,21 +176,11 @@ export const AnnotationProvider = ({ essayId, pageNumber = 1, readOnly = false, 
 
 /**
  * Hook para consumir o context de anotações
- *
- * IMPORTANTE: Deve ser usado apenas dentro de <AnnotationProvider>
- *
- * @returns {Object} Estado e funções de anotações
- * @throws {Error} Se usado fora do AnnotationProvider
- *
- * @example
- * const { lines, color, saveAnnotations } = useAnnotationContext();
  */
 export const useAnnotationContext = () => {
   const context = useContext(AnnotationContext);
-
   if (!context) {
     throw new Error('useAnnotationContext must be used within AnnotationProvider');
   }
-
   return context;
 };

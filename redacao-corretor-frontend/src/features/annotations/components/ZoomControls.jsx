@@ -28,7 +28,7 @@ export const ZoomControls = ({ onZoomIn, onZoomOut, onResetZoom, scale }) => {
   const formattedScale = `${Math.round(scale * 100)}%`;
 
   return (
-    <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2">
+    <div className="flex flex-col gap-2 bg-white rounded-lg shadow-lg p-2 border border-gray-200">
       {/* Zoom In */}
       <button
         onClick={onZoomIn}
