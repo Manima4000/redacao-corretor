@@ -10,6 +10,8 @@ export const useTaskStudents = (taskId) => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -19,7 +21,7 @@ export const useTaskStudents = (taskId) => {
       setError(null);
 
       try {
-        const result = await taskService.getTaskStudents(taskId);
+        const result = await taskService.getTaskStudents(taskId, { page, limit });
         setData(result);
       } catch (err) {
         setError(err.response?.data?.error || 'Erro ao carregar alunos da tarefa');
@@ -30,13 +32,18 @@ export const useTaskStudents = (taskId) => {
     };
 
     fetchStudents();
-  }, [taskId]);
+  }, [taskId, page, limit]);
 
   return {
     task: data?.task,
     students: data?.students || [],
     stats: data?.stats,
+    pagination: data?.pagination,
     isLoading,
     error,
+    page,
+    setPage,
+    limit,
+    setLimit,
   };
 };

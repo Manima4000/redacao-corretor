@@ -55,7 +55,7 @@ export const taskService = {
    * @param {string} taskId
    * @param {Object} pagination - Opções de paginação { page, limit }
    */
-  async getTaskStudents(taskId, { page = 1, limit = 50 } = {}) {
+  async getTaskStudents(taskId, { page = 1, limit = 20 } = {}) {
     const params = new URLSearchParams();
     params.append('page', page);
     params.append('limit', limit);

@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTaskStudents } from '../hooks/useTaskStudents';
 import { StudentListItem } from '../components/StudentListItem';
@@ -12,7 +13,12 @@ export const TaskStudentsPage = () => {
   const { classId, taskId } = useParams();
   const navigate = useNavigate();
 
-  const { task, students, stats, isLoading, error } = useTaskStudents(taskId);
+  const { task, students, stats, pagination, page, setPage, isLoading, error } = useTaskStudents(taskId);
+
+  // Scroll para o topo quando mudar de página
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
 
   if (isLoading) {
     return (
@@ -42,7 +48,7 @@ export const TaskStudentsPage = () => {
   const notSubmitted = students.filter((s) => !s.hasSubmitted);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12">
       {/* Navegação */}
       <div>
         <Button
@@ -132,6 +138,31 @@ export const TaskStudentsPage = () => {
           <p className="text-gray-500 text-lg">
             Nenhum aluno matriculado nesta turma.
           </p>
+        </div>
+      )}
+
+      {/* Paginação */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex justify-center items-center gap-4 mt-8 pb-8 border-t pt-4">
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex items-center gap-2"
+          >
+            <i className="bi bi-chevron-left"></i> Anterior
+          </Button>
+          <span className="text-gray-600 font-medium">
+            Página {page} de {pagination.totalPages}
+          </span>
+          <Button
+            variant="outline"
+            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+            disabled={page === pagination.totalPages}
+            className="flex items-center gap-2"
+          >
+            Próxima <i className="bi bi-chevron-right"></i>
+          </Button>
         </div>
       )}
     </div>
