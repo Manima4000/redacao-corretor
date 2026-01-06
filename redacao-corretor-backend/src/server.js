@@ -10,6 +10,7 @@ import routes from './infrastructure/http/routes/index.js';
 import { errorHandler, notFoundHandler } from './infrastructure/http/middleware/errorHandler.js';
 import { testConnection } from './infrastructure/database/config/database.js';
 import { emailScheduler } from './infrastructure/schedulers/emailScheduler.js';
+import { subscriptionScheduler } from './infrastructure/schedulers/subscriptionScheduler.js';
 import { httpsEnforcement } from './infrastructure/http/middleware/httpsEnforcement.js';
 import logger from './utils/logger.js';
 
@@ -177,6 +178,10 @@ async function startServer() {
     // Iniciar scheduler de emails
     logger.info('Inicializando scheduler de emails...');
     await emailScheduler.start();
+
+    // Iniciar scheduler de sincronização de assinaturas
+    logger.info('Inicializando scheduler de sincronização de assinaturas...');
+    await subscriptionScheduler.start();
 
     // Iniciar servidor
     // 0.0.0.0 permite conexões de qualquer IP (rede local ou internet)

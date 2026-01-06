@@ -32,5 +32,21 @@ uploads/
 dist/
 build/
 
+# Arquivos com dados pessoais de alunos (CPF, email, telefone)
+todos_alunos.json
+*_alunos.json
+subscriptions*.json
+assinaturas*.json
+/dados/
+/subscriptions/
+/alunos/
+
+# Credenciais
+credentials/
+*.pem
+*.key
+google-drive-service-account.json
+
 DEPLOY.md
-SECURITY_TESTING.md
+SECURITY_IMPROVEMENTS.md
+./redacao-corretor-backend/script-alunos.ts

@@ -1,6 +1,7 @@
 import { Readable } from 'stream';
 import { IFileStorageService } from '../../domain/services/IFileStorageService.js';
 import { googleDriveConfig } from '../config/googleDrive.js';
+import logger from '../../utils/logger.js';
 
 /**
  * Implementação do IFileStorageService usando Google Drive
@@ -78,9 +79,13 @@ export class GoogleDriveStorageService extends IFileStorageService {
         body: stream,
       };
 
-      console.log(`[GOOGLE DRIVE] Iniciando upload: ${filename}`);
-      console.log(`[GOOGLE DRIVE] Parent folder ID: ${parentFolderId}`);
-      console.log(`[GOOGLE DRIVE] File metadata:`, JSON.stringify(fileMetadata, null, 2));
+      // ⚠️ SEGURANÇA: Logs APENAS em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Iniciando upload', {
+          filename: this._sanitizeFilename(filename),
+          mimetype,
+        });
+      }
 
       // Fazer upload
       // IMPORTANTE: supportsAllDrives e supportsTeamDrives são necessários para Shared Drives
@@ -94,10 +99,15 @@ export class GoogleDriveStorageService extends IFileStorageService {
 
       const file = response.data;
 
-      console.log(`[GOOGLE DRIVE] Upload concluído: ${file.name}`, {
-        id: file.id,
-        size: file.size,
-      });
+      // ⚠️ SEGURANÇA: Em produção, não logar detalhes do arquivo
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Upload concluído', {
+          fileId: file.id,
+          size: file.size,
+        });
+      } else {
+        logger.info('[GOOGLE DRIVE] Upload concluído com sucesso');
+      }
 
       // Tornar arquivo público (para que alunos possam visualizar)
       await this._makePublic(file.id);
@@ -105,7 +115,11 @@ export class GoogleDriveStorageService extends IFileStorageService {
       // Retornar ID do arquivo
       return file.id;
     } catch (error) {
-      console.error('[GOOGLE DRIVE] Erro ao fazer upload:', error);
+      // ⚠️ SEGURANÇA: NÃO expor detalhes técnicos do erro em produção
+      logger.error('[GOOGLE DRIVE] Erro ao fazer upload', {
+        message: error.message,
+        code: error.code,
+      });
       throw new Error(`Falha ao fazer upload para Google Drive: ${error.message}`);
     }
   }
@@ -125,7 +139,10 @@ export class GoogleDriveStorageService extends IFileStorageService {
     await this._ensureInitialized();
 
     try {
-      console.log(`[GOOGLE DRIVE] Movendo arquivo para lixeira: ${fileId}`);
+      // ⚠️ SEGURANÇA: Logs APENAS em desenvolvimento
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Movendo arquivo para lixeira', { fileId });
+      }
 
       // Mover para lixeira (funciona em Shared Drives)
       await this.drive.files.update({
@@ -137,17 +154,24 @@ export class GoogleDriveStorageService extends IFileStorageService {
         supportsTeamDrives: true, // Compatibilidade com nome antigo
       });
 
-      console.log(`[GOOGLE DRIVE] Arquivo movido para lixeira com sucesso: ${fileId}`);
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Arquivo movido para lixeira', { fileId });
+      } else {
+        logger.info('[GOOGLE DRIVE] Arquivo deletado com sucesso');
+      }
 
       return true;
     } catch (error) {
       // Se o arquivo não existir, não é um erro crítico
       if (error.code === 404) {
-        console.warn(`[GOOGLE DRIVE] Arquivo não encontrado: ${fileId}`);
+        logger.warn('[GOOGLE DRIVE] Arquivo não encontrado ao tentar deletar');
         return false;
       }
 
-      console.error('[GOOGLE DRIVE] Erro ao mover arquivo para lixeira:', error);
+      logger.error('[GOOGLE DRIVE] Erro ao deletar arquivo', {
+        message: error.message,
+        code: error.code,
+      });
       throw new Error(`Falha ao deletar arquivo do Google Drive: ${error.message}`);
     }
   }
@@ -178,7 +202,10 @@ export class GoogleDriveStorageService extends IFileStorageService {
       // Esta URL permite visualização sem autenticação se o arquivo estiver público
       return `https://drive.google.com/uc?export=view&id=${fileId}`;
     } catch (error) {
-      console.error('[GOOGLE DRIVE] Erro ao obter URL pública:', error);
+      logger.error('[GOOGLE DRIVE] Erro ao obter URL pública', {
+        message: error.message,
+        code: error.code,
+      });
       throw new Error(`Falha ao obter URL pública: ${error.message}`);
     }
   }
@@ -195,7 +222,9 @@ export class GoogleDriveStorageService extends IFileStorageService {
     await this._ensureInitialized();
 
     try {
-      console.log(`[GOOGLE DRIVE] Baixando arquivo: ${fileId}`);
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Baixando arquivo', { fileId });
+      }
 
       const response = await this.drive.files.get(
         {
@@ -208,12 +237,19 @@ export class GoogleDriveStorageService extends IFileStorageService {
         }
       );
 
-      console.log(`[GOOGLE DRIVE] Arquivo baixado com sucesso: ${fileId}`);
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Arquivo baixado', { fileId });
+      } else {
+        logger.info('[GOOGLE DRIVE] Arquivo baixado com sucesso');
+      }
 
       // Converter arraybuffer para Buffer
       return Buffer.from(response.data);
     } catch (error) {
-      console.error('[GOOGLE DRIVE] Erro ao baixar arquivo:', error);
+      logger.error('[GOOGLE DRIVE] Erro ao baixar arquivo', {
+        message: error.message,
+        code: error.code,
+      });
       throw new Error(`Falha ao baixar arquivo do Google Drive: ${error.message}`);
     }
   }
@@ -266,7 +302,10 @@ export class GoogleDriveStorageService extends IFileStorageService {
 
       return response.data;
     } catch (error) {
-      console.error('[GOOGLE DRIVE] Erro ao obter metadados:', error);
+      logger.error('[GOOGLE DRIVE] Erro ao obter metadados', {
+        message: error.message,
+        code: error.code,
+      });
       throw new Error(`Falha ao obter metadados: ${error.message}`);
     }
   }
@@ -290,11 +329,16 @@ export class GoogleDriveStorageService extends IFileStorageService {
         supportsAllDrives: true,
       });
 
-      console.log(`[GOOGLE DRIVE] Arquivo tornado público: ${fileId}`);
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('[GOOGLE DRIVE] Arquivo tornado público', { fileId });
+      }
     } catch (error) {
-      console.error('[GOOGLE DRIVE] Erro ao tornar arquivo público:', error);
+      logger.error('[GOOGLE DRIVE] Erro ao tornar arquivo público', {
+        message: error.message,
+        code: error.code,
+      });
       // Não lançar erro, pois o upload foi bem-sucedido
-      console.warn('[GOOGLE DRIVE] Arquivo foi enviado, mas não pôde ser tornado público');
+      logger.warn('[GOOGLE DRIVE] Arquivo enviado, mas não pôde ser tornado público');
     }
   }
 

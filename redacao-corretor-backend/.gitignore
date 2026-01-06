@@ -44,3 +44,5 @@ coverage/
 # Build
 dist/
 build/
+
+SYNC_SUBSCRIPTIONS.md

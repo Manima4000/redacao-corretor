@@ -1,9 +1,38 @@
 import { ITaskRepository } from '../../../domain/repositories/ITaskRepository.js';
 import { Task } from '../../../domain/entities/Task.js';
 import { query, transaction } from '../config/database.js';
-import { NotFoundError, DatabaseError } from '../../../utils/errors.js';
+import { NotFoundError, DatabaseError, ValidationError } from '../../../utils/errors.js';
 
 export class TaskRepository extends ITaskRepository {
+  /**
+   * Valida se um valor é um UUID válido
+   * @private
+   * @param {string} value - Valor a validar
+   * @returns {boolean} True se for UUID válido
+   */
+  _isValidUUID(value) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return typeof value === 'string' && uuidRegex.test(value);
+  }
+
+  /**
+   * Valida array de UUIDs
+   * @private
+   * @param {Array} uuids - Array de UUIDs
+   * @throws {ValidationError} Se algum UUID for inválido
+   */
+  _validateUUIDs(uuids) {
+    if (!Array.isArray(uuids)) {
+      throw new ValidationError('classIds deve ser um array');
+    }
+
+    for (const uuid of uuids) {
+      if (!this._isValidUUID(uuid)) {
+        throw new ValidationError(`UUID inválido: ${uuid}`);
+      }
+    }
+  }
+
   /**
    * Cria uma nova tarefa com turmas associadas
    * @param {Object} taskData - Dados da tarefa
@@ -36,16 +65,16 @@ export class TaskRepository extends ITaskRepository {
 
         // 2. Associar turmas à tarefa
         if (taskData.classIds && taskData.classIds.length > 0) {
-          const classValues = taskData.classIds
-            .map((classId, index) => `($1, $${index + 2})`)
-            .join(', ');
+          // ⚠️ SEGURANÇA: Validar UUIDs antes de inserir no banco
+          this._validateUUIDs(taskData.classIds);
 
+          // ✅ SEGURO: Usar unnest() ao invés de concatenação de strings
           const classSql = `
             INSERT INTO task_classes (task_id, class_id)
-            VALUES ${classValues}
+            SELECT $1, unnest($2::uuid[])
           `;
 
-          await client.query(classSql, [task.id, ...taskData.classIds]);
+          await client.query(classSql, [task.id, taskData.classIds]);
         }
 
         return this._mapToEntity({ ...task, classIds: taskData.classIds });
@@ -236,16 +265,16 @@ export class TaskRepository extends ITaskRepository {
 
         // Adicionar novas associações
         if (taskData.classIds.length > 0) {
-          const classValues = taskData.classIds
-            .map((classId, index) => `($1, $${index + 2})`)
-            .join(', ');
+          // ⚠️ SEGURANÇA: Validar UUIDs antes de inserir no banco
+          this._validateUUIDs(taskData.classIds);
 
+          // ✅ SEGURO: Usar unnest() ao invés de concatenação de strings
           const classSql = `
             INSERT INTO task_classes (task_id, class_id)
-            VALUES ${classValues}
+            SELECT $1, unnest($2::uuid[])
           `;
 
-          await client.query(classSql, [id, ...taskData.classIds]);
+          await client.query(classSql, [id, taskData.classIds]);
         }
       }
 

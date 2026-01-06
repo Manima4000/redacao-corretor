@@ -79,6 +79,29 @@ export class ClassRepository extends IClassRepository {
   }
 
   /**
+   * Busca turma por nome
+   * @param {string} name - Nome da turma
+   * @returns {Promise<Class|null>} Turma encontrada ou null
+   */
+  async findByName(name) {
+    const sql = `
+      SELECT c.id, c.name, c.description, c.teacher_id, c.created_at, c.updated_at,
+             (SELECT COUNT(*) FROM students s WHERE s.class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM task_classes tc WHERE tc.class_id = c.id) AS task_count
+      FROM classes c
+      WHERE LOWER(c.name) = LOWER($1)
+    `;
+
+    const result = await query(sql, [name]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this._mapToEntity(result.rows[0]);
+  }
+
+  /**
    * Busca turmas por ID do professor
    * @param {string} teacherId - ID do professor
    * @returns {Promise<Class[]>} Lista de turmas do professor
