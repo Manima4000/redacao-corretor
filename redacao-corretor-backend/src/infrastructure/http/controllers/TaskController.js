@@ -190,14 +190,30 @@ export class TaskController {
   }
 
   /**
-   * GET /api/tasks/:id/students
-   * Busca alunos de uma tarefa com status de entrega
+   * GET /api/tasks/:id/students?page=1&limit=50
+   * Busca alunos de uma tarefa com status de entrega (paginado)
    */
   async getStudents(req, res, next) {
     try {
       const { id } = req.params;
+      const { page, limit } = req.query;
 
-      const result = await this.getTaskStudentsUseCase.execute(id);
+      // Parse e validação de parâmetros
+      const options = {
+        page: page ? parseInt(page, 10) : 1,
+        limit: limit ? parseInt(limit, 10) : 50,
+      };
+
+      // Validar valores
+      if (options.page < 1) {
+        options.page = 1;
+      }
+
+      if (options.limit < 1 || options.limit > 100) {
+        options.limit = 50; // Máximo 100 por página
+      }
+
+      const result = await this.getTaskStudentsUseCase.execute(id, options);
 
       res.status(200).json({
         success: true,

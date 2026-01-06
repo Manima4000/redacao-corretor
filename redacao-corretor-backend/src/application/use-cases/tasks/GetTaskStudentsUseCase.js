@@ -10,7 +10,15 @@ export class GetTaskStudentsUseCase {
     this.taskRepository = taskRepository;
   }
 
-  async execute(taskId) {
+  /**
+   * Executa busca de alunos com paginação
+   * @param {string} taskId - ID da tarefa
+   * @param {Object} options - Opções de paginação
+   * @param {number} options.page - Número da página (padrão: 1)
+   * @param {number} options.limit - Itens por página (padrão: 50)
+   * @returns {Promise<Object>} Alunos paginados com estatísticas
+   */
+  async execute(taskId, options = {}) {
     // Verificar se a tarefa existe
     const task = await this.taskRepository.findById(taskId);
 
@@ -18,25 +26,22 @@ export class GetTaskStudentsUseCase {
       throw new NotFoundError('Tarefa');
     }
 
-    // Buscar alunos com status de entrega
-    const students = await this.taskRepository.findStudentsByTaskId(taskId);
-
-    // Separar quem entregou e quem não entregou
-    const submitted = students.filter((s) => s.hasSubmitted);
-    const notSubmitted = students.filter((s) => !s.hasSubmitted);
+    // Buscar alunos com paginação
+    const result = await this.taskRepository.findStudentsByTaskId(taskId, options);
 
     return {
       task: task.toPublicData(),
-      students,
+      students: result.students,
       stats: {
-        total: students.length,
-        submitted: submitted.length,
-        notSubmitted: notSubmitted.length,
+        total: result.totalStats.total, // Total de alunos (todas as páginas)
+        submitted: result.totalStats.totalSubmitted, // Total de alunos que enviaram (todas as páginas)
+        notSubmitted: result.totalStats.totalNotSubmitted, // Total de alunos que não enviaram (todas as páginas)
         submissionRate:
-          students.length > 0
-            ? Math.round((submitted.length / students.length) * 100)
+          result.totalStats.total > 0
+            ? Math.round((result.totalStats.totalSubmitted / result.totalStats.total) * 100)
             : 0,
       },
+      pagination: result.pagination,
     };
   }
 }

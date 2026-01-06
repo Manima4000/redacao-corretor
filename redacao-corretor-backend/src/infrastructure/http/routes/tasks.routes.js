@@ -232,8 +232,8 @@ router.get('/:id', authMiddleware, taskController.getById);
  * @swagger
  * /api/tasks/{id}/students:
  *   get:
- *     summary: Buscar alunos de uma tarefa
- *     description: Retorna lista de alunos da(s) turma(s) da tarefa com status de entrega
+ *     summary: Buscar alunos de uma tarefa (paginado)
+ *     description: Retorna lista paginada de alunos da(s) turma(s) da tarefa com status de entrega. Alunos que enviaram redação aparecem primeiro.
  *     tags: [Tasks]
  *     security:
  *       - bearerAuth: []
@@ -245,9 +245,24 @@ router.get('/:id', authMiddleware, taskController.getById);
  *           type: string
  *           format: uuid
  *         description: ID da tarefa
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Número da página
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Itens por página (máximo 100)
  *     responses:
  *       200:
- *         description: Lista de alunos com status de entrega
+ *         description: Lista paginada de alunos com status de entrega
  *         content:
  *           application/json:
  *             schema:
@@ -302,13 +317,43 @@ router.get('/:id', authMiddleware, taskController.getById);
  *                       properties:
  *                         total:
  *                           type: integer
+ *                           description: Total de alunos (todas as páginas)
+ *                           example: 1234
  *                         submitted:
  *                           type: integer
+ *                           description: Total de alunos que enviaram (todas as páginas)
+ *                           example: 856
  *                         notSubmitted:
  *                           type: integer
+ *                           description: Total de alunos que não enviaram (todas as páginas)
+ *                           example: 378
  *                         submissionRate:
  *                           type: integer
- *                           description: Porcentagem de entregas (0-100)
+ *                           description: Porcentagem de entregas total (0-100)
+ *                           example: 69
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         page:
+ *                           type: integer
+ *                           example: 1
+ *                         limit:
+ *                           type: integer
+ *                           example: 50
+ *                         total:
+ *                           type: integer
+ *                           description: Total de alunos
+ *                           example: 1234
+ *                         totalPages:
+ *                           type: integer
+ *                           description: Total de páginas
+ *                           example: 25
+ *                         hasNextPage:
+ *                           type: boolean
+ *                           example: true
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                           example: false
  *       401:
  *         description: Token não fornecido ou inválido
  *         content:

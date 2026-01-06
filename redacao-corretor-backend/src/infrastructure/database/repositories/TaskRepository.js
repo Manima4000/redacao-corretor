@@ -370,7 +370,20 @@ export class TaskRepository extends ITaskRepository {
    * @param {string} taskId - ID da tarefa
    * @returns {Promise<Array>} Lista de alunos com status de entrega
    */
-  async findStudentsByTaskId(taskId) {
+  /**
+   * Busca alunos de uma tarefa com paginação
+   * @param {string} taskId - ID da tarefa
+   * @param {Object} options - Opções de paginação
+   * @param {number} options.page - Número da página (padrão: 1)
+   * @param {number} options.limit - Itens por página (padrão: 50)
+   * @returns {Promise<Object>} { students: [], pagination: {} }
+   */
+  async findStudentsByTaskId(taskId, options = {}) {
+    const page = options.page || 1;
+    const limit = options.limit || 50;
+    const offset = (page - 1) * limit;
+
+    // Query principal com paginação
     const sql = `
       SELECT
         s.id,
@@ -390,11 +403,40 @@ export class TaskRepository extends ITaskRepository {
       INNER JOIN task_classes tc ON s.class_id = tc.class_id
       LEFT JOIN essays e ON e.student_id = s.id AND e.task_id = $1
       WHERE tc.task_id = $1
-      ORDER BY s.full_name ASC
+      ORDER BY
+        has_submitted DESC,  -- Alunos que enviaram primeiro
+        s.full_name ASC      -- Depois por nome
+      LIMIT $2 OFFSET $3
     `;
 
-    const result = await query(sql, [taskId]);
-    return result.rows.map((row) => ({
+    // Query para contar total de alunos
+    const countSql = `
+      SELECT COUNT(DISTINCT s.id) as total
+      FROM students s
+      INNER JOIN task_classes tc ON s.class_id = tc.class_id
+      WHERE tc.task_id = $1
+    `;
+
+    // Query para contar quantos enviaram
+    const submittedCountSql = `
+      SELECT COUNT(DISTINCT s.id) as total_submitted
+      FROM students s
+      INNER JOIN task_classes tc ON s.class_id = tc.class_id
+      LEFT JOIN essays e ON e.student_id = s.id AND e.task_id = $1
+      WHERE tc.task_id = $1 AND e.id IS NOT NULL
+    `;
+
+    const [dataResult, countResult, submittedResult] = await Promise.all([
+      query(sql, [taskId, limit, offset]),
+      query(countSql, [taskId]),
+      query(submittedCountSql, [taskId]),
+    ]);
+
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalSubmitted = parseInt(submittedResult.rows[0].total_submitted, 10);
+    const totalPages = Math.ceil(total / limit);
+
+    const students = dataResult.rows.map((row) => ({
       id: row.id,
       email: row.email,
       fullName: row.full_name,
@@ -410,6 +452,23 @@ export class TaskRepository extends ITaskRepository {
           }
         : null,
     }));
+
+    return {
+      students,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+      totalStats: {
+        total,
+        totalSubmitted,
+        totalNotSubmitted: total - totalSubmitted,
+      },
+    };
   }
 
   /**

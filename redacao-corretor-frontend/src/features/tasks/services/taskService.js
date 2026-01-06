@@ -53,9 +53,14 @@ export const taskService = {
   /**
    * Busca alunos de uma tarefa com status de entrega
    * @param {string} taskId
+   * @param {Object} pagination - Opções de paginação { page, limit }
    */
-  async getTaskStudents(taskId) {
-    const response = await api.get(`/tasks/${taskId}/students`);
+  async getTaskStudents(taskId, { page = 1, limit = 50 } = {}) {
+    const params = new URLSearchParams();
+    params.append('page', page);
+    params.append('limit', limit);
+    
+    const response = await api.get(`/tasks/${taskId}/students?${params.toString()}`);
     return response.data.data;
   },
 
