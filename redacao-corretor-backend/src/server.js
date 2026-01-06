@@ -10,6 +10,7 @@ import routes from './infrastructure/http/routes/index.js';
 import { errorHandler, notFoundHandler } from './infrastructure/http/middleware/errorHandler.js';
 import { testConnection } from './infrastructure/database/config/database.js';
 import { emailScheduler } from './infrastructure/schedulers/emailScheduler.js';
+import { httpsEnforcement } from './infrastructure/http/middleware/httpsEnforcement.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -18,24 +19,88 @@ const app = express();
 // Middlewares Globais
 // ======================
 
-// Security headers
-app.use(helmet());
+// HTTPS Enforcement - deve vir ANTES de qualquer outra lógica
+app.use(httpsEnforcement);
+
+// Security headers - Helmet com configuração completa
+app.use(helmet({
+  // HTTP Strict Transport Security (HSTS)
+  // Força browsers a sempre usar HTTPS por 1 ano
+  hsts: {
+    maxAge: 31536000, // 1 ano em segundos
+    includeSubDomains: true, // Aplicar em todos os subdomínios
+    preload: true, // Permitir inclusão no HSTS preload list
+  },
+
+  // Content Security Policy (CSP)
+  // Define quais recursos podem ser carregados
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"], // Apenas recursos do mesmo domínio por padrão
+      scriptSrc: ["'self'"], // Scripts apenas do mesmo domínio
+      styleSrc: ["'self'", "'unsafe-inline'"], // Estilos do mesmo domínio + inline (necessário para Swagger)
+      imgSrc: ["'self'", "data:", "https://drive.google.com", "https://*.googleusercontent.com"], // Imagens do domínio + data URIs + Google Drive
+      connectSrc: ["'self'", ...(config.frontend.urls || [])], // Conexões para API + frontend
+      fontSrc: ["'self'", "data:"], // Fontes do domínio + data URIs
+      objectSrc: ["'none'"], // Bloquear plugins (Flash, etc.)
+      mediaSrc: ["'self'"], // Mídia apenas do domínio
+      frameSrc: ["'none'"], // Bloquear iframes (previne clickjacking)
+      upgradeInsecureRequests: [], // Forçar upgrade HTTP → HTTPS
+    },
+  },
+
+  // X-Frame-Options: DENY
+  // Previne que a página seja carregada em iframe (clickjacking)
+  frameguard: {
+    action: 'deny',
+  },
+
+  // X-Content-Type-Options: nosniff
+  // Previne MIME type sniffing
+  noSniff: true,
+
+  // Referrer-Policy: no-referrer
+  // Não vazar informações de referrer
+  referrerPolicy: {
+    policy: 'no-referrer',
+  },
+
+  // X-Download-Options: noopen
+  // Previne download automático de arquivos perigosos
+  ieNoOpen: true,
+
+  // X-Permitted-Cross-Domain-Policies: none
+  // Bloqueia Adobe Flash/PDF cross-domain requests
+  permittedCrossDomainPolicies: {
+    permittedPolicies: 'none',
+  },
+}));
 
 // CORS - Suporta múltiplas origens
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requisições sem origin (ex: Postman, curl)
-    if (!origin) return callback(null, true);
+    // EM PRODUÇÃO, SEMPRE exigir origin header
+    if (process.env.NODE_ENV === 'production' && !origin) {
+      logger.warn('🚨 CORS bloqueou requisição sem origin header em produção', {
+        ip: req?.ip,
+      });
+      return callback(new Error('Origin header obrigatório em produção'));
+    }
+
+    // Em desenvolvimento, permitir requisições sem origin (Postman, curl)
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
 
     // Verificar se a origin está na lista permitida
     if (config.frontend.urls.includes(origin)) {
       callback(null, true);
     } else {
-      logger.warn(`CORS bloqueou origem: ${origin}`);
+      logger.warn(`🚨 CORS bloqueou origem não permitida: ${origin}`);
       callback(new Error('Não permitido pelo CORS'));
     }
   },
-  credentials: true,
+  credentials: true, // Permite cookies em requisições cross-origin
 }));
 
 // Cookie parsing

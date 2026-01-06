@@ -3,6 +3,7 @@ import { AuthController } from '../controllers/AuthController.js';
 import { validate } from '../middleware/validationMiddleware.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 import { registerSchema, loginSchema, refreshTokenSchema } from '../validators/authValidators.js';
+import { loginLimiter, registerLimiter, refreshTokenLimiter } from '../middleware/rateLimiters.js';
 
 const router = Router();
 const authController = new AuthController();
@@ -72,6 +73,7 @@ const authController = new AuthController();
  */
 router.post(
   '/register',
+  registerLimiter, // Rate limiting: 3 registros por hora
   validate(registerSchema),
   authController.register
 );
@@ -116,6 +118,7 @@ router.post(
  */
 router.post(
   '/login',
+  loginLimiter, // Rate limiting: 5 tentativas por 15min (IP + email)
   validate(loginSchema),
   authController.login
 );
@@ -173,6 +176,7 @@ router.post(
  */
 router.post(
   '/refresh',
+  refreshTokenLimiter, // Rate limiting: 10 renovações por 15min
   validate(refreshTokenSchema),
   authController.refresh
 );
