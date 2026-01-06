@@ -11,8 +11,18 @@ export class GetTasksUseCase {
   async execute(filters = {}, requestingUser) {
     const { teacherId, classId } = filters;
 
-    // Se for professor, busca suas tarefas
+    // Se for professor
     if (requestingUser.userType === 'teacher') {
+      // Se informou uma turma, filtra apenas as tarefas DESTA turma
+      if (classId) {
+        const tasks = await this.taskRepository.findByClassId(classId);
+        // Filtramos para garantir que o professor só veja as tarefas que ELE criou para aquela turma
+        return tasks
+          .filter(t => t.teacherId === requestingUser.id)
+          .map((t) => t.toPublicData());
+      }
+
+      // Caso contrário, busca todas as tarefas do professor (visão geral)
       const tasks = await this.taskRepository.findByTeacherId(
         teacherId || requestingUser.id
       );

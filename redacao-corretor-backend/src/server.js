@@ -176,8 +176,8 @@ async function startServer() {
     }
 
     // Iniciar scheduler de emails
-    logger.info('Inicializando scheduler de emails...');
-    await emailScheduler.start();
+    //logger.info('Inicializando scheduler de emails...');
+    //await emailScheduler.start();
 
     // Iniciar scheduler de sincronização de assinaturas
     logger.info('Inicializando scheduler de sincronização de assinaturas...');
