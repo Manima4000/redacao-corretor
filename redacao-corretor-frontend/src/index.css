@@ -24,7 +24,6 @@
     margin: 0;
     padding: 0;
     background-color: #fafafa;
-    /* Removemos touch-action: none e user-select: none para permitir scroll e interação padrão */
   }
 
   button {

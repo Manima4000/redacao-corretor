@@ -232,13 +232,14 @@ export const AnnotationPage = ({
         onPointerDown={handleMouseDown}
         onPointerMove={handleMouseMove}
         onPointerUp={handleMouseUp}
-        style={{ 
+        style={{
           position: 'absolute',
           top: 0,
           left: 0,
           zIndex: 10,
           cursor: isPenActive ? 'crosshair' : 'default',
-          backgroundColor: fileType === 'image' ? 'transparent' : 'transparent' 
+          backgroundColor: fileType === 'image' ? 'transparent' : 'transparent',
+          touchAction: 'none' // Permite scroll vertical com dedo, bloqueia outros gestos
         }}
       >
         {fileType === 'image' && image && (
