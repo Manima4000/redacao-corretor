@@ -88,15 +88,15 @@ jobs:
           EOF
 
       - name: Verificar Docker Compose Build
-        run: docker-compose build
+        run: docker compose build
 
       - name: Verificar se containers sobem
         run: |
-          docker-compose up -d
+          docker compose up -d
           sleep 10
-          docker-compose ps
-          docker-compose logs backend
-          docker-compose down
+          docker compose ps
+          docker compose logs backend
+          docker compose down
 
   # Job 4: Resumo Final
   summary:
