@@ -31,7 +31,7 @@ export const TaskDetailPage = () => {
    * Estado da redação do aluno
    */
   const [essay, setEssay] = useState(null);
-  const [isLoadingEssay, setIsLoadingEssay] = useState(true);
+  const [_isLoadingEssay, setIsLoadingEssay] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 

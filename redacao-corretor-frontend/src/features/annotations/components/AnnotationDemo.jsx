@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Stage, Layer, Line, Image as KonvaImage, Rect, Text } from 'react-konva';
 import { useStylus } from '../hooks/useStylus';
 import { useCanvasZoom } from '../hooks/useCanvasZoom';
-import { pointsToPath, eventToPoint, getStrokeOptions } from '../utils/freehandHelper';
+import { getStrokeOptions } from '../utils/freehandHelper';
 import getStroke from 'perfect-freehand';
 
 export function AnnotationDemo() {
@@ -131,9 +131,7 @@ export function AnnotationDemo() {
   };
 
   // Handler: Pointer Up (finalizar desenho ou pan)
-  const handlePointerUp = (e) => {
-    const event = e.evt;
-
+  const handlePointerUp = () => {
     if (stylus.isPenActive && currentLine) {
       // Finalizar linha
       setLines([...lines, currentLine]);

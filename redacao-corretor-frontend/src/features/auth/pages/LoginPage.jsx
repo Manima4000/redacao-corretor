@@ -11,7 +11,7 @@ import { ROUTES } from '@/shared/constants/routes';
  */
 export const LoginPage = () => {
   const navigate = useNavigate();
-  const { setUser, setLoading, setError } = useAuth();
+  const { setUser, setLoading: _setLoading, setError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',

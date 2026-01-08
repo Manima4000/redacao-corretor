@@ -24,7 +24,7 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const toast = useToast();
-  const autoSaveTimerRef = useRef(null);
+  const _autoSaveTimerRef = useRef(null); // TODO: Implementar auto-save
   const lastSavedDataRef = useRef(null);
 
   /**
@@ -89,8 +89,9 @@ export const useAnnotations = (essayId, pageNumber = 1, readOnly = false) => {
 
   /**
    * Auto-save: Salva automaticamente se houver mudanças
+   * TODO: Implementar auto-save automático
    */
-  const autoSave = useCallback(() => {
+  const _autoSave = useCallback(() => {
     if (readOnly || !hasUnsavedChanges) return;
 
     console.log('[useAnnotations] Auto-save triggered');

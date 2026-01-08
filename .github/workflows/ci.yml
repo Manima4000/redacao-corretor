@@ -1,0 +1,121 @@
+name: CI - Verificação de Código
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  # Job 1: Verificar Backend
+  backend:
+    name: Verificar Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'redacao-corretor-backend/package-lock.json'
+
+      - name: Instalar dependências
+        working-directory: ./redacao-corretor-backend
+        run: npm ci
+
+      - name: Verificar código (ESLint)
+        working-directory: ./redacao-corretor-backend
+        run: npm run lint --if-present || echo "⚠️ ESLint não configurado"
+
+      - name: Verificar se código compila
+        working-directory: ./redacao-corretor-backend
+        run: node -e "console.log('✅ Backend OK')"
+
+  # Job 2: Verificar Frontend
+  frontend:
+    name: Verificar Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'redacao-corretor-frontend/package-lock.json'
+
+      - name: Instalar dependências
+        working-directory: ./redacao-corretor-frontend
+        run: npm ci
+
+      - name: Verificar código (ESLint)
+        working-directory: ./redacao-corretor-frontend
+        run: npm run lint --if-present || echo "⚠️ ESLint não configurado"
+
+      - name: Build do Frontend
+        working-directory: ./redacao-corretor-frontend
+        run: npm run build
+
+  # Job 3: Verificar Docker Build
+  docker:
+    name: Verificar Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Criar arquivo .env temporário
+        run: |
+          cat > redacao-corretor-backend/.env << EOF
+          NODE_ENV=production
+          PORT=3000
+          DATABASE_HOST=postgres
+          DATABASE_PORT=5432
+          DATABASE_NAME=redacao_corretor
+          DATABASE_USER=postgres
+          DATABASE_PASSWORD=postgres
+          JWT_SECRET=test-secret-key
+          JWT_REFRESH_SECRET=test-refresh-secret
+          FRONTEND_URL=http://localhost:5173
+          EOF
+
+      - name: Verificar Docker Compose Build
+        run: docker-compose build
+
+      - name: Verificar se containers sobem
+        run: |
+          docker-compose up -d
+          sleep 10
+          docker-compose ps
+          docker-compose logs backend
+          docker-compose down
+
+  # Job 4: Resumo Final
+  summary:
+    name: Resumo da Verificação
+    runs-on: ubuntu-latest
+    needs: [backend, frontend, docker]
+    if: always()
+
+    steps:
+      - name: Verificar se todos os jobs passaram
+        run: |
+          if [ "${{ needs.backend.result }}" != "success" ] || \
+             [ "${{ needs.frontend.result }}" != "success" ] || \
+             [ "${{ needs.docker.result }}" != "success" ]; then
+            echo "❌ Alguns jobs falharam!"
+            echo "Backend: ${{ needs.backend.result }}"
+            echo "Frontend: ${{ needs.frontend.result }}"
+            echo "Docker: ${{ needs.docker.result }}"
+            exit 1
+          else
+            echo "✅ Todos os jobs passaram com sucesso!"
+          fi

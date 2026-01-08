@@ -10,15 +10,15 @@ import { getStrokeOptions } from '../utils/freehandHelper';
 /**
  * Componente que renderiza uma única página (Imagem ou PDF) com sua camada de anotação
  */
-export const AnnotationPage = ({ 
-  essayId, 
-  pageNumber, 
-  fileType, 
-  fileUrl, 
-  image, 
-  scale, 
+export const AnnotationPage = ({
+  essayId,
+  pageNumber,
+  fileType,
+  fileUrl, // eslint-disable-line no-unused-vars
+  image,
+  scale,
   readOnly,
-  onLoadSuccess 
+  onLoadSuccess
 }) => {
   const { 
     color, 
@@ -33,7 +33,7 @@ export const AnnotationPage = ({
   const {
     lines,
     updateLines,
-    isLoading,
+    isLoading: _isLoading,
     saveAnnotations, // Método de salvar específico desta página
     clearAnnotations,
     undo,
@@ -96,6 +96,7 @@ export const AnnotationPage = ({
     if (fileType === 'image' && image) {
       const width = image.width;
       const height = image.height;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPageSize({ width, height });
       if (onLoadSuccess) onLoadSuccess(pageNumber, { width, height });
     }

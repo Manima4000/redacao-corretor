@@ -20,6 +20,7 @@ export const FinalizeEssayModal = ({ isOpen, onClose, onFinalize, isLoading, ini
   // Pré-popular comentários quando modal abre
   useEffect(() => {
     if (isOpen && initialComments) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setWrittenFeedback(initialComments);
     }
   }, [isOpen, initialComments]);
